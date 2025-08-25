@@ -13,6 +13,7 @@ import FaqPage from "../pages/FaqPage";
 import AboutPage from "../pages/AboutPage";
 import ActorPage from "../pages/ActorPage";
 import ProfilePage from "../pages/ProfilePage";
+import NotFoundPage from "../pages/404/NotFoundPage"
 function App() {
   return (
     <BrowserRouter>
