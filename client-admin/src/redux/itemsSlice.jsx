@@ -1,67 +1,141 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { create } from 'kubo-rpc-client';
+import axios from '../config/axios.js';
 
-// Dữ liệu ban đầu (bạn có thể lấy từ API sau này)
-const initialItemsData = [
-    { id: 11, title: 'I Dream in Another Language', rating: 7.9, category: 'Movie', views: 1392, status: 'Visible', created: '05.02.2023' },
-    { id: 12, title: 'The Forgotten Road', rating: 7.1, category: 'Movie', views: 1093, status: 'Hidden', created: '05.02.2023' },
-    // ... các phim còn lại
-];
-
-// Kết nối đến API của IPFS Desktop
 const ipfs = create({ url: 'http://127.0.0.1:5001/api/v0' });
 
-// --- Async Thunks ---
-// Thunk để fetch dữ liệu ban đầu (giả lập gọi API)
-export const fetchItems = createAsyncThunk('items/fetchItems', async () => {
-    // Trong thực tế, bạn sẽ gọi API ở đây:
-    // const response = await fetch('/api/movies');
-    // return await response.json();
-    return Promise.resolve(initialItemsData);
+export const fetchItems = createAsyncThunk('items/fetchItems', async (_, { rejectWithValue }) => {
+    try {
+        const response = await axios.get('/movies');
+        return response.data.map(item => ({ ...item, id: item._id }));
+    } catch (error) {
+        if (error.response && error.response.data) {
+            return rejectWithValue(error.response.data.message || 'Could not fetch items');
+        } else {
+            return rejectWithValue(error.message || 'Network error or server is not responding');
+        }
+    }
 });
 
-// Thunk để thêm một item mới (bao gồm cả upload IPFS và gọi API)
-export const addNewItem = createAsyncThunk('items/addNewItem', async (formData) => {
-    // 1. Upload file lên IPFS
-    let coverImageCid = null;
-    if (formData.coverImage) {
-        const result = await ipfs.add(formData.coverImage);
-        coverImageCid = result.cid;
+export const addNewMovie = createAsyncThunk('items/addNewMovie', async (formData, { rejectWithValue }) => {
+    try {
+        // 1. Upload ảnh bìa lên IPFS
+        let coverImageCid = null;
+        if (formData.coverImage) {
+            const result = await ipfs.add(formData.coverImage);
+            coverImageCid = result.cid;
+        }
+
+        // 2. Upload video chính của phim lên IPFS
+        let videoCid = null;
+        if (formData.video) {
+            const result = await ipfs.add(formData.video);
+            videoCid = result.cid;
+        } else {
+            // Nếu schema backend yêu cầu phải có video, bạn phải báo lỗi ở đây
+            return rejectWithValue('Video file is required for a movie.');
+        }
+
+        // 3. Chuẩn bị payload để gửi lên backend theo movieSchema
+        const moviePayload = {
+            title: formData.title,
+            description: formData.description,
+            cover_image_url: coverImageCid ? `http://127.0.0.1:8080/ipfs/${coverImageCid}` : '',
+            background_image_url: formData.backgroundLink,
+            release_year: new Date(formData.premiereDate).getFullYear() || new Date().getFullYear(),
+            running_time: parseInt(formData.runningTime, 10) || 0,
+            age_rating: formData.age,
+            quality: formData.quality, // phải là 1 trong ['HD 1080','HD 720','DVD','TS','FULLHD']
+            genres: formData.genres, // ở đây phải là mảng ObjectId, không phải string
+            director: formData.directorId, // phải là 1 ObjectId hợp lệ
+            cast: formData.castIds, // mảng ObjectId hợp lệ
+            country: formData.countries.join(', '),
+            video_source: { cid: videoCid.toString() },
+            status: 'Visible'
+        };
+
+        // 4. Gửi payload lên API endpoint cho movie
+        const response = await axios.post('/movies', moviePayload);
+        const savedItem = response.data;
+        return { ...savedItem, id: savedItem._id };
+
+    } catch (error) {
+        // Xử lý lỗi an toàn
+        console.error("Error adding new movie:", error);
+        if (error.response && error.response.data) {
+            return rejectWithValue(error.response.data.message);
+        } else {
+            return rejectWithValue(error.message || 'A network error occurred while adding the movie.');
+        }
     }
-    
-    let videoCid = null;
-    if (formData.itemType === 'movie' && formData.video) {
-        const result = await ipfs.add(formData.video);
-        videoCid = result.cid;
+});
+
+/**
+ * Thunk MỚI: Chỉ để thêm TV Series
+ */
+export const addNewTVSeries = createAsyncThunk('items/addNewTVSeries', async (formData, { rejectWithValue }) => {
+    try {
+        // 1. Upload ảnh bìa chính của TV Series
+        let coverImageCid = null;
+        if (formData.coverImage) {
+            const result = await ipfs.add(formData.coverImage);
+            coverImageCid = result.cid;
+        }
+
+        // 2. Xử lý upload video cho từng tập phim và tạo cấu trúc seasons
+        const seasonsPayload = await Promise.all(
+            formData.seasons.map(async (season, seasonIndex) => {
+                const episodesPayload = await Promise.all(
+                    season.episodes.map(async (episode, episodeIndex) => {
+                        if (!episode.video) {
+                            throw new Error(`Video for Season ${seasonIndex + 1}, Episode ${episodeIndex + 1} is missing.`);
+                        }
+                        const result = await ipfs.add(episode.video);
+                        return {
+                            episode_number: episodeIndex + 1,
+                            title: episode.title,
+                            air_date: episode.airDate,
+                            video_source: {
+                                cid: result.cid.toString()
+                            }
+                        };
+                    })
+                );
+                return {
+                    season_number: seasonIndex + 1,
+                    title: season.title,
+                    episodes: episodesPayload
+                };
+            })
+        );
+
+        // 3. Chuẩn bị payload chính cho TV Series
+        const tvSeriesPayload = {
+            title: formData.title,
+            description: formData.description,
+            cover_image_url: coverImageCid ? `http://127.0.0.1:8080/ipfs/${coverImageCid.toString()}` : '',
+            release_year: new Date(formData.premiereDate).getFullYear() || new Date().getFullYear(),
+            genres: formData.genres,
+            cast: formData.actors,
+            seasons: seasonsPayload,
+            status: 'Visible'
+        };
+
+        // 4. Gửi payload lên API endpoint cho TV Series
+        // LƯU Ý: Endpoint có thể là '/tvseries' hoặc tương tự
+        const response = await axios.post('/tvseries', tvSeriesPayload);
+        const savedItem = response.data;
+        return { ...savedItem, id: savedItem._id };
+
+    } catch (error) {
+        // Xử lý lỗi an toàn
+        console.error("Error adding new TV series:", error);
+        if (error.response && error.response.data) {
+            return rejectWithValue(error.response.data.message);
+        } else {
+            return rejectWithValue(error.message || 'A network error occurred while adding the TV series.');
+        }
     }
-
-    // 2. Chuẩn bị dữ liệu để gửi lên backend
-    const moviePayload = {
-        title: formData.title,
-        description: formData.description,
-        cover_image_url: coverImageCid ? `http://127.0.0.1:8080/ipfs/${coverImageCid.toString()}` : '',
-        video_source: { cid: videoCid ? videoCid.toString() : '' },
-        status: 'Visible',
-        // ... các trường khác từ formData
-    };
-
-    // 3. Gọi API backend để lưu phim
-    // const response = await fetch('/api/movies', { method: 'POST', ... });
-    // const savedItem = await response.json();
-    // return savedItem;
-
-    // --- Giả lập dữ liệu trả về từ backend ---
-    const savedItemForUI = {
-        id: Date.now(),
-        title: moviePayload.title,
-        rating: 0,
-        category: formData.itemType === 'movie' ? 'Movie' : 'TV Series',
-        views: 0,
-        status: 'Visible',
-        created: new Date().toLocaleDateString('en-GB'), // dd.mm.yyyy
-    };
-    
-    return savedItemForUI;
 });
 
 
@@ -76,8 +150,9 @@ const itemsSlice = createSlice({
     extraReducers(builder) {
         builder
             // Xử lý fetchItems
-            .addCase(fetchItems.pending, (state, action) => {
+            .addCase(fetchItems.pending, (state) => {
                 state.status = 'loading';
+                state.error = null;
             })
             .addCase(fetchItems.fulfilled, (state, action) => {
                 state.status = 'succeeded';
@@ -85,22 +160,29 @@ const itemsSlice = createSlice({
             })
             .addCase(fetchItems.rejected, (state, action) => {
                 state.status = 'failed';
-                state.error = action.error.message;
+                state.error = action.payload;
             })
-            // Xử lý addNewItem
-            .addCase(addNewItem.pending, (state, action) => {
-                // Bạn có thể set một trạng thái submitting riêng nếu muốn
-                state.status = 'loading';
-            })
-            .addCase(addNewItem.fulfilled, (state, action) => {
-                state.status = 'succeeded';
-                // Thêm item mới vào đầu mảng
-                state.data.unshift(action.payload);
-            })
-            .addCase(addNewItem.rejected, (state, action) => {
-                state.status = 'failed';
-                state.error = action.error.message;
-            });
+            .addMatcher(
+                (action) => action.type === addNewMovie.pending.type || action.type === addNewTVSeries.pending.type,
+                (state) => {
+                    state.status = 'loading';
+                    state.error = null;
+                }
+            )
+            .addMatcher(
+                (action) => action.type === addNewMovie.fulfilled.type || action.type === addNewTVSeries.fulfilled.type,
+                (state, action) => {
+                    state.status = 'succeeded';
+                    state.data.unshift(action.payload);
+                }
+            )
+            .addMatcher(
+                (action) => action.type === addNewMovie.rejected.type || action.type === addNewTVSeries.rejected.type,
+                (state, action) => {
+                    state.status = 'failed';
+                    state.error = action.payload;
+                }
+            );
     }
 });
 

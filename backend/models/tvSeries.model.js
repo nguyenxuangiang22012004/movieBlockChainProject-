@@ -7,6 +7,10 @@ const { Schema } = mongoose;
 const episodeSchema = new Schema({
   episode_number: { type: Number, required: true },
   title: { type: String, required: true },
+  category: { 
+    type: String, 
+    default: "TVSeries" 
+  },
   air_date: Date,
   // ---- IPFS CID cho từng tập phim ----
   video_source: {

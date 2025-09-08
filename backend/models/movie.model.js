@@ -13,6 +13,10 @@ const movieSchema = new Schema({
         type: String,
         required: true,
     },
+    category: {
+        type: String,
+        default: "Movie"
+    },
     cover_image_url: String,
     background_image_url: String,
     release_year: Number,
@@ -20,7 +24,7 @@ const movieSchema = new Schema({
     age_rating: String,
     quality: {
         type: String,
-        enum: ['HD 1080', 'HD 720', 'DVD', 'TS'], // Giới hạn các giá trị có thể có
+        enum: ['HD 1080', 'HD 720', 'DVD', 'TS', 'FullHD'],
     },
     genres: [{
         type: Schema.Types.ObjectId,
@@ -45,9 +49,9 @@ const movieSchema = new Schema({
     },
     // ---- Phần quan trọng cho IPFS ----
     video_source: {
-        type: { 
-            type: String, 
-            default: 'ipfs' 
+        type: {
+            type: String,
+            default: 'ipfs'
         },
         cid: { // Trường để lưu CID của file video chính
             type: String,

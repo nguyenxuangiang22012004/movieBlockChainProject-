@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { create } from 'kubo-rpc-client';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { addNewMovie, addNewTVSeries } from '../redux/itemsSlice';
 
-const ipfs = create({ url: 'http://127.0.0.1:5001/api/v0' });
 const AddItemPage = () => {
+
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const { status, error } = useSelector((state) => state.items);
+  const isSubmitting = status === 'loading';
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -44,9 +51,9 @@ const AddItemPage = () => {
   useEffect(() => {
     // Khởi tạo tất cả các select của SlimSelect
     if (window.SlimSelect) {
-      qualitySelectRef.current = new window.SlimSelect({ 
-        select: '#sign__quality', 
-        settings: { showSearch: false } 
+      qualitySelectRef.current = new window.SlimSelect({
+        select: '#sign__quality',
+        settings: { showSearch: false }
       });
       genreSelectRef.current = new window.SlimSelect({ select: '#sign__genre' });
       countrySelectRef.current = new window.SlimSelect({ select: '#sign__country' });
@@ -64,7 +71,7 @@ const AddItemPage = () => {
     };
   }, []);
 
-  const handleInputChange = (e) => { 
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -87,6 +94,7 @@ const AddItemPage = () => {
       [fieldName]: selectedOptions
     }));
   };
+
 
   const addSeason = () => {
     setFormData(prev => ({
@@ -115,7 +123,7 @@ const AddItemPage = () => {
       airDate: '',
       video: null
     });
-    
+
     setFormData(prev => ({
       ...prev,
       seasons: updatedSeasons
@@ -125,7 +133,7 @@ const AddItemPage = () => {
   const removeEpisode = (seasonIndex, episodeIndex) => {
     const updatedSeasons = [...formData.seasons];
     updatedSeasons[seasonIndex].episodes.splice(episodeIndex, 1);
-    
+
     setFormData(prev => ({
       ...prev,
       seasons: updatedSeasons
@@ -135,7 +143,7 @@ const AddItemPage = () => {
   const handleSeasonChange = (seasonIndex, field, value) => {
     const updatedSeasons = [...formData.seasons];
     updatedSeasons[seasonIndex][field] = value;
-    
+
     setFormData(prev => ({
       ...prev,
       seasons: updatedSeasons
@@ -145,17 +153,36 @@ const AddItemPage = () => {
   const handleEpisodeChange = (seasonIndex, episodeIndex, field, value) => {
     const updatedSeasons = [...formData.seasons];
     updatedSeasons[seasonIndex].episodes[episodeIndex][field] = value;
-    
+
     setFormData(prev => ({
       ...prev,
       seasons: updatedSeasons
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    alert('Item added successfully!');
+
+    const submissionData = { ...formData };
+
+    try {
+      if (submissionData.itemType === 'movie') {
+        // Nếu là movie, gọi thunk addNewMovie
+        await dispatch(addNewMovie(submissionData)).unwrap();
+      } else {
+        // Nếu là TV Series, gọi thunk addNewTVSeries
+        await dispatch(addNewTVSeries(submissionData)).unwrap();
+      }
+
+      alert('Item added successfully!');
+      navigate('/admin/catalog');
+
+    } catch (err) {
+      // err bây giờ sẽ là payload từ rejectWithValue
+      console.error('Failed to save the item: ', err);
+      // Hiển thị lỗi một cách thân thiện hơn
+      alert(`Error: ${err || 'An unknown error occurred'}`);
+    }
   };
 
   return (
@@ -175,9 +202,9 @@ const AddItemPage = () => {
                 <div className="row">
                   <div className="col-12">
                     <div className="sign__group">
-                      <input 
-                        type="text" 
-                        className="sign__input" 
+                      <input
+                        type="text"
+                        className="sign__input"
                         placeholder="Title"
                         name="title"
                         value={formData.title}
@@ -189,10 +216,10 @@ const AddItemPage = () => {
 
                   <div className="col-12">
                     <div className="sign__group">
-                      <textarea 
-                        id="text" 
-                        name="description" 
-                        className="sign__textarea" 
+                      <textarea
+                        id="text"
+                        name="description"
+                        className="sign__textarea"
                         placeholder="Description"
                         value={formData.description}
                         onChange={handleInputChange}
@@ -208,12 +235,12 @@ const AddItemPage = () => {
                           Upload cover (240x340)
                           {formData.coverImage && ` - ${formData.coverImage.name}`}
                         </label>
-                        <input 
-                          data-name="#gallery1" 
-                          id="sign__gallery-upload" 
-                          name="coverImage" 
-                          className="sign__gallery-upload" 
-                          type="file" 
+                        <input
+                          data-name="#gallery1"
+                          id="sign__gallery-upload"
+                          name="coverImage"
+                          className="sign__gallery-upload"
+                          type="file"
                           accept=".png, .jpg, .jpeg"
                           onChange={(e) => handleFileUpload(e, 'coverImage')}
                         />
@@ -223,9 +250,9 @@ const AddItemPage = () => {
 
                   <div className="col-12 col-md-6">
                     <div className="sign__group">
-                      <input 
-                        type="text" 
-                        className="sign__input" 
+                      <input
+                        type="text"
+                        className="sign__input"
                         placeholder="Link to the background (1920x1280)"
                         name="backgroundLink"
                         value={formData.backgroundLink}
@@ -241,24 +268,26 @@ const AddItemPage = () => {
                 <div className="row">
                   <div className="col-12 col-md-6">
                     <div className="sign__group">
-                      <select 
-                        className="sign__selectjs" 
+                      <select
+                        className="sign__selectjs"
                         id="sign__quality"
                         name="quality"
                         value={formData.quality}
                         onChange={handleInputChange}
                       >
-                        <option value="FullHD">FullHD</option>
-                        <option value="HD">HD</option>
+                        <option value="FULLHD">FULLHD</option>
+                        <option value="HD 1080">HD 1080</option>
+                        <option value="HD 720">HD 720</option>
+                        <option value="DVD">DVD</option>
+                        <option value="TS">TS</option>
                       </select>
                     </div>
                   </div>
-
                   <div className="col-12 col-md-6">
                     <div className="sign__group">
-                      <input 
-                        type="text" 
-                        className="sign__input" 
+                      <input
+                        type="text"
+                        className="sign__input"
                         placeholder="Age"
                         name="age"
                         value={formData.age}
@@ -269,9 +298,9 @@ const AddItemPage = () => {
 
                   <div className="col-12">
                     <div className="sign__group">
-                      <select 
-                        className="sign__selectjs" 
-                        id="sign__genre" 
+                      <select
+                        className="sign__selectjs"
+                        id="sign__genre"
                         multiple
                         value={formData.genres}
                         onChange={(e) => handleMultiSelectChange(e, 'genres')}
@@ -295,9 +324,9 @@ const AddItemPage = () => {
 
                   <div className="col-12 col-md-6">
                     <div className="sign__group">
-                      <input 
-                        type="text" 
-                        className="sign__input" 
+                      <input
+                        type="text"
+                        className="sign__input"
                         placeholder="Running time"
                         name="runningTime"
                         value={formData.runningTime}
@@ -308,9 +337,9 @@ const AddItemPage = () => {
 
                   <div className="col-12 col-md-6">
                     <div className="sign__group">
-                      <input 
-                        type="text" 
-                        className="sign__input" 
+                      <input
+                        type="text"
+                        className="sign__input"
                         placeholder="Premiere date"
                         name="premiereDate"
                         value={formData.premiereDate}
@@ -321,9 +350,9 @@ const AddItemPage = () => {
 
                   <div className="col-12">
                     <div className="sign__group">
-                      <select 
-                        className="sign__selectjs" 
-                        id="sign__country" 
+                      <select
+                        className="sign__selectjs"
+                        id="sign__country"
                         multiple
                         value={formData.countries}
                         onChange={(e) => handleMultiSelectChange(e, 'countries')}
@@ -348,9 +377,9 @@ const AddItemPage = () => {
               <div className="col-12 col-md-6 col-xl-4">
                 <div className="sign__group">
                   <label className="sign__label">Directors</label>
-                  <select 
-                    className="sign__selectjs" 
-                    id="sign__director" 
+                  <select
+                    className="sign__selectjs"
+                    id="sign__director"
                     multiple
                     value={formData.directors}
                     onChange={(e) => handleMultiSelectChange(e, 'directors')}
@@ -374,9 +403,9 @@ const AddItemPage = () => {
               <div className="col-12 col-md-6 col-xl-8">
                 <div className="sign__group">
                   <label className="sign__label">Actors</label>
-                  <select 
-                    className="sign__selectjs" 
-                    id="sign__actors" 
+                  <select
+                    className="sign__selectjs"
+                    id="sign__actors"
                     multiple
                     value={formData.actors}
                     onChange={(e) => handleMultiSelectChange(e, 'actors')}
@@ -403,10 +432,10 @@ const AddItemPage = () => {
                   <label className="sign__label">Item type:</label>
                   <ul className="sign__radio">
                     <li>
-                      <input 
-                        id="type1" 
-                        type="radio" 
-                        name="itemType" 
+                      <input
+                        id="type1"
+                        type="radio"
+                        name="itemType"
                         value="movie"
                         checked={formData.itemType === 'movie'}
                         onChange={handleInputChange}
@@ -414,10 +443,10 @@ const AddItemPage = () => {
                       <label htmlFor="type1">Movie</label>
                     </li>
                     <li>
-                      <input 
-                        id="type2" 
-                        type="radio" 
-                        name="itemType" 
+                      <input
+                        id="type2"
+                        type="radio"
+                        name="itemType"
                         value="tvSeries"
                         checked={formData.itemType === 'tvSeries'}
                         onChange={handleInputChange}
@@ -436,12 +465,12 @@ const AddItemPage = () => {
                       Upload video
                       {formData.video && ` - ${formData.video.name}`}
                     </label>
-                    <input 
-                      data-name="#movie1" 
-                      id="sign__video-upload" 
-                      name="video" 
-                      className="sign__video-upload" 
-                      type="file" 
+                    <input
+                      data-name="#movie1"
+                      id="sign__video-upload"
+                      name="video"
+                      className="sign__video-upload"
+                      type="file"
                       accept="video/mp4,video/x-m4v,video/*"
                       onChange={(e) => handleFileUpload(e, 'video')}
                     />
@@ -462,9 +491,9 @@ const AddItemPage = () => {
 
                           <div className="col-12 col-sm-6 col-md-5 col-xl-6">
                             <div className="sign__group">
-                              <input 
-                                type="text" 
-                                className="sign__input" 
+                              <input
+                                type="text"
+                                className="sign__input"
                                 placeholder="Season title"
                                 value={season.title}
                                 onChange={(e) => handleSeasonChange(seasonIndex, 'title', e.target.value)}
@@ -474,9 +503,9 @@ const AddItemPage = () => {
 
                           <div className="col-12 col-sm-6 col-md-4 col-xl-4">
                             <div className="sign__group">
-                              <input 
-                                type="text" 
-                                className="sign__input" 
+                              <input
+                                type="text"
+                                className="sign__input"
                                 placeholder="Season info"
                                 value={season.info}
                                 onChange={(e) => handleSeasonChange(seasonIndex, 'info', e.target.value)}
@@ -485,8 +514,8 @@ const AddItemPage = () => {
                           </div>
 
                           <div className="col-12 col-sm-4 col-md-3 col-xl-2">
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               className="sign__btn sign__btn--add"
                               onClick={addSeason}
                             >
@@ -502,8 +531,8 @@ const AddItemPage = () => {
                             <div className="col-12">
                               <span className="sign__episode-title">Episode #{episodeIndex + 1}</span>
                               {episodeIndex > 0 && (
-                                <button 
-                                  className="sign__delete" 
+                                <button
+                                  className="sign__delete"
                                   type="button"
                                   onClick={() => removeEpisode(seasonIndex, episodeIndex)}
                                 >
@@ -514,9 +543,9 @@ const AddItemPage = () => {
 
                             <div className="col-12 col-md-6">
                               <div className="sign__group">
-                                <input 
-                                  type="text" 
-                                  className="sign__input" 
+                                <input
+                                  type="text"
+                                  className="sign__input"
                                   placeholder={`Episode title ${episodeIndex + 1}`}
                                   value={episode.title}
                                   onChange={(e) => handleEpisodeChange(seasonIndex, episodeIndex, 'title', e.target.value)}
@@ -526,9 +555,9 @@ const AddItemPage = () => {
 
                             <div className="col-12 col-md-6">
                               <div className="sign__group">
-                                <input 
-                                  type="text" 
-                                  className="sign__input" 
+                                <input
+                                  type="text"
+                                  className="sign__input"
                                   placeholder="Air date"
                                   value={episode.airDate}
                                   onChange={(e) => handleEpisodeChange(seasonIndex, episodeIndex, 'airDate', e.target.value)}
@@ -542,12 +571,12 @@ const AddItemPage = () => {
                                   Upload episode {episodeIndex + 1}
                                   {episode.video && ` - ${episode.video.name}`}
                                 </label>
-                                <input 
+                                <input
                                   data-name={`#s${seasonIndex}s${episodeIndex}`}
                                   id={`sign__video-upload-${seasonIndex}-${episodeIndex}`}
                                   name={`s${seasonIndex}s${episodeIndex}`}
-                                  className="sign__video-upload" 
-                                  type="file" 
+                                  className="sign__video-upload"
+                                  type="file"
                                   accept="video/mp4,video/x-m4v,video/*"
                                   onChange={(e) => {
                                     const file = e.target.files[0];
@@ -559,8 +588,8 @@ const AddItemPage = () => {
 
                             {episodeIndex === season.episodes.length - 1 && (
                               <div className="col-12 col-sm-4 col-md-3 col-xl-2">
-                                <button 
-                                  type="button" 
+                                <button
+                                  type="button"
                                   className="sign__btn sign__btn--add"
                                   onClick={() => addEpisode(seasonIndex)}
                                 >
@@ -578,10 +607,11 @@ const AddItemPage = () => {
 
               {/* Submit Button */}
               <div className="col-12">
-                <button type="submit" className="sign__btn sign__btn--small">
-                  <span>Publish</span>
+                <button type="submit" className="sign__btn sign__btn--small" disabled={isSubmitting}>
+                  <span>{isSubmitting ? 'Publishing...' : 'Publish'}</span>
                 </button>
               </div>
+              {error && <p style={{ color: 'red' }}>Error: {error}</p>}
             </div>
           </form>
         </div>
