@@ -8,5 +8,4 @@ router.post("/movies", uploadController.createMovie);
 
 // GET /api/movies - lấy danh sách phim
 router.get("/movies", uploadController.getMovie);
-
 export default router;

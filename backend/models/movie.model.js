@@ -20,7 +20,7 @@ const movieSchema = new Schema({
     cover_image_url: String,
     background_image_url: String,
     release_year: Number,
-    running_time: Number, // tính bằng phút
+    running_time: Number, 
     age_rating: String,
     quality: {
         type: String,

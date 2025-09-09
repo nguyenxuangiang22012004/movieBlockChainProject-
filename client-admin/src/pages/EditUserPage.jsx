@@ -6,7 +6,6 @@ function EditUserPage() {
   const [activeTab, setActiveTab] = useState('profile');
 
   useEffect(() => {
-    console.log("Fetching data for user ID:", userId);
     
     // Khởi tạo SlimSelect khi component được mount và khi activeTab thay đổi
     if (window.SlimSelect && activeTab === 'profile') {

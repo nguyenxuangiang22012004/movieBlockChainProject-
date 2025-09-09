@@ -10,6 +10,7 @@ import ReviewsPage from "../pages/ReviewPage";
 import SettingsPage from "../pages/SettingPage";
 import CommentsPage from "../pages/CommentsPage";
 import SettingAdmin from "../pages/SettingAdmin";
+import EditItemPage from "../pages/EditItemPage";
 function App() {
   return (
     <BrowserRouter>
@@ -25,6 +26,7 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="comments" element={<CommentsPage />} />
           <Route path="edit-admin" element={<SettingAdmin />} />
+          <Route path="edit-items/:id" element={<EditItemPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -4,39 +4,60 @@ import axios from '../config/axios.js';
 
 const ipfs = create({ url: 'http://127.0.0.1:5001/api/v0' });
 
-export const fetchItems = createAsyncThunk('items/fetchItems', async (_, { rejectWithValue }) => {
+/**
+ * Fetch danh sách items
+ */
+export const fetchItems = createAsyncThunk("items/fetchItems", async (_, { rejectWithValue }) => {
     try {
-        const response = await axios.get('/movies');
-        return response.data.map(item => ({ ...item, id: item._id }));
+        const response = await axios.get("/catalog");
+        return response.data;
     } catch (error) {
         if (error.response && error.response.data) {
-            return rejectWithValue(error.response.data.message || 'Could not fetch items');
+            return rejectWithValue(error.response.data.message);
         } else {
-            return rejectWithValue(error.message || 'Network error or server is not responding');
+            return rejectWithValue(error.message || "Failed to fetch catalog");
         }
     }
 });
 
+/**
+ * Update status (Visible/Hidden) cho Movie
+ */
+export const updateItemStatus = createAsyncThunk(
+    "items/updateItemStatus",
+    async ({ type, id, status }, { rejectWithValue }) => {
+        try {
+            const response = await axios.patch(`/${type}/${id}/status`, { status });
+            return response.data;
+        } catch (error) {
+            if (error.response && error.response.data) {
+                return rejectWithValue(error.response.data.message);
+            } else {
+                return rejectWithValue(error.message || "Failed to update status");
+            }
+        }
+    }
+);
+
+/**
+ * Add Movie
+ */
 export const addNewMovie = createAsyncThunk('items/addNewMovie', async (formData, { rejectWithValue }) => {
     try {
-        // 1. Upload ảnh bìa lên IPFS
         let coverImageCid = null;
         if (formData.coverImage) {
             const result = await ipfs.add(formData.coverImage);
             coverImageCid = result.cid;
         }
 
-        // 2. Upload video chính của phim lên IPFS
         let videoCid = null;
         if (formData.video) {
             const result = await ipfs.add(formData.video);
             videoCid = result.cid;
         } else {
-            // Nếu schema backend yêu cầu phải có video, bạn phải báo lỗi ở đây
             return rejectWithValue('Video file is required for a movie.');
         }
 
-        // 3. Chuẩn bị payload để gửi lên backend theo movieSchema
         const moviePayload = {
             title: formData.title,
             description: formData.description,
@@ -45,22 +66,20 @@ export const addNewMovie = createAsyncThunk('items/addNewMovie', async (formData
             release_year: new Date(formData.premiereDate).getFullYear() || new Date().getFullYear(),
             running_time: parseInt(formData.runningTime, 10) || 0,
             age_rating: formData.age,
-            quality: formData.quality, // phải là 1 trong ['HD 1080','HD 720','DVD','TS','FULLHD']
-            genres: formData.genres, // ở đây phải là mảng ObjectId, không phải string
-            director: formData.directorId, // phải là 1 ObjectId hợp lệ
-            cast: formData.castIds, // mảng ObjectId hợp lệ
+            quality: formData.quality,
+            genres: formData.genres,
+            director: formData.directorId,
+            cast: formData.castIds,
             country: formData.countries.join(', '),
             video_source: { cid: videoCid.toString() },
             status: 'Visible'
         };
 
-        // 4. Gửi payload lên API endpoint cho movie
         const response = await axios.post('/movies', moviePayload);
         const savedItem = response.data;
         return { ...savedItem, id: savedItem._id };
 
     } catch (error) {
-        // Xử lý lỗi an toàn
         console.error("Error adding new movie:", error);
         if (error.response && error.response.data) {
             return rejectWithValue(error.response.data.message);
@@ -70,19 +89,14 @@ export const addNewMovie = createAsyncThunk('items/addNewMovie', async (formData
     }
 });
 
-/**
- * Thunk MỚI: Chỉ để thêm TV Series
- */
 export const addNewTVSeries = createAsyncThunk('items/addNewTVSeries', async (formData, { rejectWithValue }) => {
     try {
-        // 1. Upload ảnh bìa chính của TV Series
         let coverImageCid = null;
         if (formData.coverImage) {
             const result = await ipfs.add(formData.coverImage);
             coverImageCid = result.cid;
         }
 
-        // 2. Xử lý upload video cho từng tập phim và tạo cấu trúc seasons
         const seasonsPayload = await Promise.all(
             formData.seasons.map(async (season, seasonIndex) => {
                 const episodesPayload = await Promise.all(
@@ -95,9 +109,7 @@ export const addNewTVSeries = createAsyncThunk('items/addNewTVSeries', async (fo
                             episode_number: episodeIndex + 1,
                             title: episode.title,
                             air_date: episode.airDate,
-                            video_source: {
-                                cid: result.cid.toString()
-                            }
+                            video_source: { cid: result.cid.toString() }
                         };
                     })
                 );
@@ -109,7 +121,6 @@ export const addNewTVSeries = createAsyncThunk('items/addNewTVSeries', async (fo
             })
         );
 
-        // 3. Chuẩn bị payload chính cho TV Series
         const tvSeriesPayload = {
             title: formData.title,
             description: formData.description,
@@ -121,14 +132,11 @@ export const addNewTVSeries = createAsyncThunk('items/addNewTVSeries', async (fo
             status: 'Visible'
         };
 
-        // 4. Gửi payload lên API endpoint cho TV Series
-        // LƯU Ý: Endpoint có thể là '/tvseries' hoặc tương tự
         const response = await axios.post('/tvseries', tvSeriesPayload);
         const savedItem = response.data;
         return { ...savedItem, id: savedItem._id };
 
     } catch (error) {
-        // Xử lý lỗi an toàn
         console.error("Error adding new TV series:", error);
         if (error.response && error.response.data) {
             return rejectWithValue(error.response.data.message);
@@ -138,18 +146,29 @@ export const addNewTVSeries = createAsyncThunk('items/addNewTVSeries', async (fo
     }
 });
 
+export const updateItem = createAsyncThunk(
+    "items/updateItem",
+    async ({ id, data }, { rejectWithValue }) => {
+        try {
+            const res = await axios.put(`/items/${id}`, data);
+            return res.data;
+        } catch (err) {
+            return rejectWithValue(err.response?.data || "Failed to update item");
+        }
+    }
+);
 
 const itemsSlice = createSlice({
     name: 'items',
     initialState: {
         data: [],
-        status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
+        status: 'idle',
         error: null,
     },
     reducers: {},
     extraReducers(builder) {
         builder
-            // Xử lý fetchItems
+            // fetchItems
             .addCase(fetchItems.pending, (state) => {
                 state.status = 'loading';
                 state.error = null;
@@ -162,6 +181,23 @@ const itemsSlice = createSlice({
                 state.status = 'failed';
                 state.error = action.payload;
             })
+            // updateItemStatus
+            .addCase(updateItemStatus.fulfilled, (state, action) => {
+                const index = state.data.findIndex((i) => i._id === action.payload._id);
+                if (index !== -1) {
+                    state.data[index] = action.payload;
+                }
+            })
+            // ✅ đưa updateItem.fulfilled lên đây
+            .addCase(updateItem.fulfilled, (state, action) => {
+                const idx = state.data.findIndex(
+                    (i) => i.id === action.payload.id || i._id === action.payload._id
+                );
+                if (idx !== -1) {
+                    state.data[idx] = action.payload;
+                }
+            })
+            // add movie/tv
             .addMatcher(
                 (action) => action.type === addNewMovie.pending.type || action.type === addNewTVSeries.pending.type,
                 (state) => {
@@ -183,7 +219,7 @@ const itemsSlice = createSlice({
                     state.error = action.payload;
                 }
             );
-    }
+        }
 });
 
 export default itemsSlice.reducer;

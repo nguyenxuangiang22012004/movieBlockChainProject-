@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchItems } from '../redux/itemsSlice';
+import { fetchItems, updateItemStatus } from '../redux/itemsSlice';
+
 function CatalogPage() {
     const dispatch = useDispatch();
-    // State để lưu trữ dữ liệu
     const { data: items, status: itemsStatus, error } = useSelector((state) => state.items);
 
     useEffect(() => {
@@ -13,6 +13,7 @@ function CatalogPage() {
         }
     }, [itemsStatus, dispatch]);
 
+    const [selectedItem, setSelectedItem] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortBy, setSortBy] = useState('0');
@@ -22,14 +23,12 @@ function CatalogPage() {
     // Logic sắp xếp
     const sortedItems = [...items].sort((a, b) => {
         if (sortBy === '1') {
-            return b.rating - a.rating;
+            return (b.rating || 0) - (a.rating || 0);
         } else if (sortBy === '2') {
-            return b.views - a.views;
+            return (b.views || 0) - (a.views || 0);
         } else {
-            const [dayA, monthA, yearA] = a.created.split('.').map(Number);
-            const [dayB, monthB, yearB] = b.created.split('.').map(Number);
-            const dateA = new Date(yearA, monthA - 1, dayA);
-            const dateB = new Date(yearB, monthB - 1, dayB);
+            const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+            const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
             return dateB - dateA;
         }
     });
@@ -70,24 +69,10 @@ function CatalogPage() {
     const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
-    // Hàm xử lý phân trang
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
+    const goToPrevPage = () => currentPage > 1 && setCurrentPage(currentPage - 1);
+    const goToNextPage = () => currentPage < totalPages && setCurrentPage(currentPage + 1);
 
-    // Hàm để chuyển đến trang trước
-    const goToPrevPage = () => {
-        if (currentPage > 1) {
-            setCurrentPage(currentPage - 1);
-        }
-    };
-
-    // Hàm để chuyển đến trang tiếp theo
-    const goToNextPage = () => {
-        if (currentPage < totalPages) {
-            setCurrentPage(currentPage + 1);
-        }
-    };
-
-    // Tạo mảng các số trang để hiển thị
     const getPageNumbers = () => {
         const pageNumbers = [];
         const maxVisiblePages = 5;
@@ -98,43 +83,23 @@ function CatalogPage() {
             }
         } else {
             pageNumbers.push(1);
-
             let startPage = Math.max(2, currentPage - 1);
             let endPage = Math.min(totalPages - 1, currentPage + 1);
 
-            if (currentPage <= 3) {
-                endPage = 4;
-            }
+            if (currentPage <= 3) endPage = 4;
+            if (currentPage >= totalPages - 2) startPage = totalPages - 3;
 
-            if (currentPage >= totalPages - 2) {
-                startPage = totalPages - 3;
-            }
-
-            if (startPage > 2) {
-                pageNumbers.push('...');
-            }
-
-            for (let i = startPage; i <= endPage; i++) {
-                pageNumbers.push(i);
-            }
-
-            if (endPage < totalPages - 1) {
-                pageNumbers.push('...');
-            }
-
+            if (startPage > 2) pageNumbers.push('...');
+            for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
+            if (endPage < totalPages - 1) pageNumbers.push('...');
             pageNumbers.push(totalPages);
         }
 
         return pageNumbers;
     };
 
-    if (itemsStatus === 'loading') {
-        return <div>Loading...</div>;
-    }
-
-    if (itemsStatus === 'failed') {
-        return <div>Error: {error}</div>;
-    }
+    if (itemsStatus === 'loading') return <div>Loading...</div>;
+    if (itemsStatus === 'failed') return <div>Error: {error}</div>;
 
     return (
         <>
@@ -191,7 +156,7 @@ function CatalogPage() {
                                 <tbody>
                                     {currentItems.length > 0 ? (
                                         currentItems.map(item => (
-                                            <tr key={item.id}>
+                                            <tr key={item.id || item._id}>
                                                 <td><div className="catalog__text">{item.id}</div></td>
                                                 <td><div className="catalog__text"><a href="#">{item.title}</a></div></td>
                                                 <td><div className="catalog__text catalog__text--rate">{item.rating}</div></td>
@@ -209,16 +174,14 @@ function CatalogPage() {
                                                     <div className="catalog__btns">
                                                         <button
                                                             type="button"
-                                                            data-bs-toggle="modal"
                                                             className="catalog__btn catalog__btn--banned"
+                                                            data-bs-toggle="modal"
                                                             data-bs-target="#modal-status"
+                                                            onClick={() => setSelectedItem(item)}
                                                         >
                                                             <i className="ti ti-lock"></i>
                                                         </button>
-                                                        <a href="#" className="catalog__btn catalog__btn--view">
-                                                            <i className="ti ti-eye"></i>
-                                                        </a>
-                                                        <Link to={`/admin/add-item/${item.id}`} className="catalog__btn catalog__btn--edit">
+                                                        <Link to={`/admin/edit-items/${item.id}`} className="catalog__btn catalog__btn--edit">
                                                             <i className="ti ti-edit"></i>
                                                         </Link>
                                                         <button
@@ -250,11 +213,9 @@ function CatalogPage() {
                     {filteredItems.length > 0 && (
                         <div className="col-12">
                             <div className="main__paginator">
-                                {/* amount */}
                                 <span className="main__paginator-pages">
                                     {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredItems.length)} of {filteredItems.length}
                                 </span>
-                                {/* end amount */}
 
                                 <ul className="main__paginator-list">
                                     <li>
@@ -291,7 +252,7 @@ function CatalogPage() {
 
                                     {getPageNumbers().map((pageNumber, index) => (
                                         <li
-                                            key={index}
+                                            key={pageNumber === '...' ? `dots-${index}` : pageNumber}
                                             className={`paginator__item ${pageNumber === currentPage ? 'paginator__item--active' : ''
                                                 } ${pageNumber === '...' ? 'paginator__item--dots' : ''}`}
                                         >
@@ -333,7 +294,19 @@ function CatalogPage() {
                                 <h4 className="modal__title">Status change</h4>
                                 <p className="modal__text">Are you sure about immediately change status?</p>
                                 <div className="modal__btns">
-                                    <button className="modal__btn modal__btn--apply" type="button">
+                                    <button
+                                        className="modal__btn modal__btn--apply"
+                                        type="button"
+                                        onClick={() => {
+                                            if (selectedItem) {
+                                                const newStatus = selectedItem.status === "Visible" ? "Hidden" : "Visible";
+                                                // dùng category hoặc type từ item
+                                                const type = selectedItem.category === "Movie" ? "movies" : "tvseries";
+                                                dispatch(updateItemStatus({ type, id: selectedItem._id || selectedItem.id, status: newStatus }));
+                                            }
+                                        }}
+                                        data-bs-dismiss="modal"
+                                    >
                                         <span>Apply</span>
                                     </button>
                                     <button className="modal__btn modal__btn--dismiss" type="button" data-bs-dismiss="modal" aria-label="Close">
