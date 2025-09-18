@@ -1,15 +1,14 @@
+// redux/itemsSlice.jsx
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { create } from 'kubo-rpc-client';
 import axios from '../config/axios.js';
 
 const ipfs = create({ url: 'http://127.0.0.1:5001/api/v0' });
 
-/**
- * Fetch danh sách items
- */
 export const fetchItems = createAsyncThunk("items/fetchItems", async (_, { rejectWithValue }) => {
     try {
         const response = await axios.get("/catalog");
+        console.log(response);
         return response.data;
     } catch (error) {
         if (error.response && error.response.data) {
@@ -63,14 +62,14 @@ export const addNewMovie = createAsyncThunk('items/addNewMovie', async (formData
             description: formData.description,
             cover_image_url: coverImageCid ? `http://127.0.0.1:8080/ipfs/${coverImageCid}` : '',
             background_image_url: formData.backgroundLink,
-            release_year: new Date(formData.premiereDate).getFullYear() || new Date().getFullYear(),
+            release_year: formData.release_year,
             running_time: parseInt(formData.runningTime, 10) || 0,
             age_rating: formData.age,
             quality: formData.quality,
             genres: formData.genres,
-            director: formData.directorId,
-            cast: formData.castIds,
-            country: formData.countries.join(', '),
+            director: formData.directors.join(', '),
+            actors: formData.actors,
+            country: formData.country.join(', '),
             video_source: { cid: videoCid.toString() },
             status: 'Visible'
         };
@@ -125,9 +124,9 @@ export const addNewTVSeries = createAsyncThunk('items/addNewTVSeries', async (fo
             title: formData.title,
             description: formData.description,
             cover_image_url: coverImageCid ? `http://127.0.0.1:8080/ipfs/${coverImageCid.toString()}` : '',
-            release_year: new Date(formData.premiereDate).getFullYear() || new Date().getFullYear(),
+            release_year: formData.release_year, 
             genres: formData.genres,
-            cast: formData.actors,
+            actors: formData.actors,
             seasons: seasonsPayload,
             status: 'Visible'
         };
@@ -150,7 +149,7 @@ export const updateItem = createAsyncThunk(
     "items/updateItem",
     async ({ id, data }, { rejectWithValue }) => {
         try {
-            const res = await axios.put(`/items/${id}`, data);
+            const res = await axios.put(`/catalog/${id}`, data);
             return res.data;
         } catch (err) {
             return rejectWithValue(err.response?.data || "Failed to update item");
@@ -168,10 +167,8 @@ const itemsSlice = createSlice({
     reducers: {},
     extraReducers(builder) {
         builder
-            // fetchItems
             .addCase(fetchItems.pending, (state) => {
                 state.status = 'loading';
-                state.error = null;
             })
             .addCase(fetchItems.fulfilled, (state, action) => {
                 state.status = 'succeeded';
@@ -181,28 +178,24 @@ const itemsSlice = createSlice({
                 state.status = 'failed';
                 state.error = action.payload;
             })
-            // updateItemStatus
             .addCase(updateItemStatus.fulfilled, (state, action) => {
                 const index = state.data.findIndex((i) => i._id === action.payload._id);
                 if (index !== -1) {
-                    state.data[index] = action.payload;
+                    state.data[index].status = action.payload.status;
                 }
             })
-            // ✅ đưa updateItem.fulfilled lên đây
             .addCase(updateItem.fulfilled, (state, action) => {
                 const idx = state.data.findIndex(
-                    (i) => i.id === action.payload.id || i._id === action.payload._id
+                    (i) => i._id === action.payload._id
                 );
                 if (idx !== -1) {
-                    state.data[idx] = action.payload;
+                    state.data[idx] = { ...state.data[idx], ...action.payload };
                 }
             })
-            // add movie/tv
             .addMatcher(
-                (action) => action.type === addNewMovie.pending.type || action.type === addNewTVSeries.pending.type,
+                (action) => action.type === addNewMovie.pending.type || action.type === addNewTVSeries.pending.type || action.type === updateItem.pending.type,
                 (state) => {
                     state.status = 'loading';
-                    state.error = null;
                 }
             )
             .addMatcher(
@@ -213,13 +206,13 @@ const itemsSlice = createSlice({
                 }
             )
             .addMatcher(
-                (action) => action.type === addNewMovie.rejected.type || action.type === addNewTVSeries.rejected.type,
+                (action) => action.type === addNewMovie.rejected.type || action.type === addNewTVSeries.rejected.type || action.type === updateItem.rejected.type,
                 (state, action) => {
                     state.status = 'failed';
                     state.error = action.payload;
                 }
             );
-        }
+    }
 });
 
 export default itemsSlice.reducer;

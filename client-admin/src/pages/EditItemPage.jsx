@@ -1,16 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchItems, updateItem } from '../redux/itemsSlice';
+import { transformFormData } from "../tranforms/editCatalog/editCatalogTransform";
 
 const EditItemPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const slimSelectsRef = useRef({});
+
   const { data: items, status } = useSelector((state) => state.items);
-  // Find the item to edit once and memoize it
-  const itemToEdit = React.useMemo(() => items.find((i) => i.id === id || i._id === id), [items, id]);
+  const itemToEdit = React.useMemo(
+    () => items.find((i) => String(i.id || i._id) === String(id)),
+    [items, id]
+  );
   const isSubmitting = status === 'loading';
 
   const [formData, setFormData] = useState({
@@ -18,13 +23,13 @@ const EditItemPage = () => {
     description: '',
     coverImage: null,
     backgroundLink: '',
-    quality: 'FULLHD',
+    quality: '',
     age: '',
     genres: [],
     runningTime: '',
-    premiereDate: '',
-    countries: [],
-    directors: [],
+    release_year: '',
+    country: '',
+    director: '',
     actors: [],
     itemType: 'movie',
     video: null,
@@ -37,57 +42,91 @@ const EditItemPage = () => {
     ]
   });
 
-  // Load items on initial render if not already loaded
   useEffect(() => {
     if (status === 'idle') {
       dispatch(fetchItems());
     }
   }, [status, dispatch]);
 
-  // Populate form data once the item to edit is available
   useEffect(() => {
     if (itemToEdit) {
+      const getSanitizedSeasons = (seasonsData) => {
+        if (!seasonsData || seasonsData.length === 0) {
+          return [{ title: '', info: '', episodes: [{ title: '', airDate: '', video: null }] }];
+        }
+        return seasonsData.map(season => ({
+          ...season,
+          episodes: (Array.isArray(season.episodes) && season.episodes.length > 0)
+            ? season.episodes
+            : [{ title: '', airDate: '', video: null }]
+        }));
+      };
+
+      const sanitizedSeasons = getSanitizedSeasons(itemToEdit.seasons);
       setFormData({
         title: itemToEdit.title || '',
         description: itemToEdit.description || '',
-        coverImage: null, // File inputs cannot be pre-populated
+        coverImage: null,
         backgroundLink: itemToEdit.background_image_url || '',
         quality: itemToEdit.quality || 'FULLHD',
         age: itemToEdit.age_rating || '',
-        genres: itemToEdit.genres || [],
+        genres: Array.isArray(itemToEdit.genres) ? itemToEdit.genres : [],
         runningTime: itemToEdit.running_time || '',
-        premiereDate: itemToEdit.release_year || '',
-        countries: Array.isArray(itemToEdit.country) ? itemToEdit.country : (itemToEdit.country ? itemToEdit.country.split(', ') : []),
-        directors: Array.isArray(itemToEdit.director) ? itemToEdit.director : (itemToEdit.director ? [itemToEdit.director] : []),
-        actors: itemToEdit.cast || [],
-        itemType: itemToEdit.seasons && itemToEdit.seasons.length > 0 ? 'tvSeries' : 'movie',
-        video: null, // File inputs cannot be pre-populated
-        seasons: itemToEdit.seasons && itemToEdit.seasons.length > 0 ? itemToEdit.seasons : [{ title: '', info: '', episodes: [{ title: '', airDate: '', video: null }] }]
+        release_year: itemToEdit.release_year || '',
+        country: Array.isArray(itemToEdit.country) ? itemToEdit.country[0] || '' : (itemToEdit.country || ''),
+        director: Array.isArray(itemToEdit.director) ? itemToEdit.director[0] || '' : (itemToEdit.director || ''),
+        actors: Array.isArray(itemToEdit.actors) ? itemToEdit.actors : [],
+        itemType: (Array.isArray(itemToEdit.seasons) && itemToEdit.seasons.length > 0) ? 'tvSeries' : 'movie',
+        video: null,
+        seasons: sanitizedSeasons
       });
     }
   }, [itemToEdit]);
 
-  // Initialize SlimSelect only after itemToEdit data is available
   useEffect(() => {
-    // Only run if we have data and the SlimSelect library is on the window
-    if (itemToEdit && window.SlimSelect) {
-      const quality = new window.SlimSelect({ select: '#quality', settings: { showSearch: false } });
-      const genres = new window.SlimSelect({ select: '#genres' });
-      const countries = new window.SlimSelect({ select: '#countries' });
-      const directors = new window.SlimSelect({ select: '#directors' });
-      const actors = new window.SlimSelect({ select: '#actors' });
-
-      // IMPORTANT: Return a cleanup function to destroy the instances
-      // This prevents memory leaks and duplication on re-renders
-      return () => {
-        quality.destroy();
-        genres.destroy();
-        countries.destroy();
-        directors.destroy();
-        actors.destroy();
-      };
+    if (!itemToEdit || !window.SlimSelect) {
+      return;
     }
-  }, [itemToEdit]); // Dependency array ensures this runs when itemToEdit is populated
+
+    // Khởi tạo các instance
+    slimSelectsRef.current.genres = new window.SlimSelect({ select: '#genres' });
+    slimSelectsRef.current.director = new window.SlimSelect({ select: '#director' });
+    slimSelectsRef.current.actors = new window.SlimSelect({ select: '#actors' });
+    slimSelectsRef.current.quality = new window.SlimSelect({ select: '#quality', settings: { showSearch: false } });
+    slimSelectsRef.current.countries = new window.SlimSelect({ select: '#countries' });
+
+    // Hàm dọn dẹp: Sẽ chạy khi component unmount
+    return () => {
+      Object.values(slimSelectsRef.current).forEach(instance => {
+        if (instance && typeof instance.destroy === 'function') {
+          instance.destroy();
+        }
+      });
+      slimSelectsRef.current = {};
+    };
+  }, [itemToEdit]); // Chỉ chạy một lần khi itemToEdit có dữ liệu
+
+  // Hook 2: Chỉ để cập nhật giá trị cho SlimSelect khi formData thay đổi
+  useEffect(() => {
+    if (!itemToEdit) return;
+
+    // Sử dụng phương thức chính xác: setSelected()
+    if (slimSelectsRef.current.genres) {
+      slimSelectsRef.current.genres.setSelected(formData.genres);
+    }
+    if (slimSelectsRef.current.director) {
+      slimSelectsRef.current.director.setSelected(formData.director);
+    }
+    if (slimSelectsRef.current.actors) {
+      slimSelectsRef.current.actors.setSelected(formData.actors);
+    }
+    if (slimSelectsRef.current.quality) {
+      slimSelectsRef.current.quality.setSelected(formData.quality);
+    }
+    if (slimSelectsRef.current.countries) {
+      slimSelectsRef.current.countries.setSelected(formData.country);
+    }
+  }, [itemToEdit, formData.genres, formData.director, formData.actors, formData.quality, formData.country]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -97,7 +136,7 @@ const EditItemPage = () => {
   const handleFileChange = (e, field) => {
     setFormData(prev => ({ ...prev, [field]: e.target.files[0] }));
   };
-  
+
   const handleEpisodeFileChange = (sIdx, eIdx, file) => {
     const seasons = [...formData.seasons];
     seasons[sIdx].episodes[eIdx].video = file;
@@ -115,11 +154,11 @@ const EditItemPage = () => {
       seasons: [...prev.seasons, { title: '', info: '', episodes: [{ title: '', airDate: '', video: null }] }]
     }));
   };
-  
+
   const removeSeason = (sIdx) => {
     const seasons = [...formData.seasons];
     seasons.splice(sIdx, 1);
-    setFormData(prev => ({ ...prev, seasons}));
+    setFormData(prev => ({ ...prev, seasons }));
   };
 
   const addEpisode = (sIdx) => {
@@ -127,7 +166,7 @@ const EditItemPage = () => {
     seasons[sIdx].episodes.push({ title: '', airDate: '', video: null });
     setFormData(prev => ({ ...prev, seasons }));
   };
-  
+
   const removeEpisode = (sIdx, eIdx) => {
     const seasons = [...formData.seasons];
     seasons[sIdx].episodes.splice(eIdx, 1);
@@ -149,15 +188,15 @@ const EditItemPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await dispatch(updateItem({ id, data: formData })).unwrap();
-      alert('Item updated successfully!');
-      navigate('/admin/catalog');
+      const payload = await transformFormData(formData, itemToEdit);
+      await dispatch(updateItem({ id: itemToEdit._id || itemToEdit.id, data: payload })).unwrap();
+      alert("Item updated successfully!");
+      navigate("/admin/catalog");
     } catch (err) {
-      alert(`Error: ${err.message || 'Unknown error'}`);
+      alert(`Error: ${err.message || "Unknown error"}`);
     }
   };
 
-  // Render a loading state or null if no data yet to prevent SlimSelect from initializing on an empty form
   if (!itemToEdit) {
     return <div>Loading item data...</div>;
   }
@@ -203,7 +242,14 @@ const EditItemPage = () => {
 
                   <div className="col-12 col-md-6">
                     <div className="sign__group">
-                      <input type="text" className="sign__input" placeholder="Link to the background (1920x1280)" name="backgroundLink" value={formData.backgroundLink} onChange={handleInputChange} />
+                      <input
+                        type="text"
+                        className="sign__input"
+                        placeholder="Link to the background (1920x1280)"
+                        name="backgroundLink"
+                        value={formData.backgroundLink}
+                        onChange={handleInputChange}
+                      />
                     </div>
                   </div>
                 </div>
@@ -237,7 +283,6 @@ const EditItemPage = () => {
                         <option value="Comedy">Comedy</option>
                         <option value="Crime">Crime</option>
                         <option value="Drama">Drama</option>
-                        {/* Add other genres as needed */}
                       </select>
                     </div>
                   </div>
@@ -250,17 +295,34 @@ const EditItemPage = () => {
 
                   <div className="col-12 col-md-6">
                     <div className="sign__group">
-                      <input type="text" className="sign__input" placeholder="Premiere date" name="premiereDate" value={formData.premiereDate} onChange={handleInputChange} />
+                      <input
+                        type="date"
+                        className="sign__input"
+                        placeholder="Premiere date"
+                        name="release_year"
+                        value={
+                          formData.release_year
+                            ? new Date(formData.release_year).toISOString().split("T")[0]
+                            : ""
+                        }
+                        onChange={handleInputChange}
+                      />
                     </div>
                   </div>
 
                   <div className="col-12">
                     <div className="sign__group">
-                      <select className="sign__selectjs" id="countries" multiple value={formData.countries} onChange={(e) => handleMultiSelectChange(e, 'countries')}>
+                      <select
+                        className="sign__selectjs"
+                        id="countries"
+                        name="country"
+                        value={formData.country}
+                        onChange={handleInputChange}
+                      >
                         <option value="United States">United States</option>
                         <option value="United Kingdom">United Kingdom</option>
                         <option value="Canada">Canada</option>
-                        {/* Add other countries as needed */}
+                        <option value="Vietnam">Vietnam</option>
                       </select>
                     </div>
                   </div>
@@ -270,10 +332,9 @@ const EditItemPage = () => {
               {/* Directors and Actors */}
               <div className="col-12 col-md-6 col-xl-4">
                 <div className="sign__group">
-                  <select className="sign__selectjs" id="directors" multiple value={formData.directors} onChange={(e) => handleMultiSelectChange(e, 'directors')}>
+                  <select className="sign__selectjs" id="director" name="director" value={formData.director} onChange={handleInputChange}>
                     <option value="Matt Jones">Matt Jones</option>
                     <option value="Gene Graham">Gene Graham</option>
-                     {/* Add other directors as needed */}
                   </select>
                 </div>
               </div>
@@ -283,7 +344,6 @@ const EditItemPage = () => {
                   <select className="sign__selectjs" id="actors" multiple value={formData.actors} onChange={(e) => handleMultiSelectChange(e, 'actors')}>
                     <option value="Matt Jones">Matt Jones</option>
                     <option value="Gene Graham">Gene Graham</option>
-                    {/* Add other actors as needed */}
                   </select>
                 </div>
               </div>
@@ -335,10 +395,10 @@ const EditItemPage = () => {
                             </div>
                           </div>
                           <div className="col-12 col-sm-4 col-md-3 col-xl-2">
-                             {formData.seasons.length > 1 && (
-                                <button className="sign__delete" type="button" onClick={() => removeSeason(sIdx)}>
-                                    <i className="ti ti-x"></i>
-                                </button>
+                            {formData.seasons.length > 1 && (
+                              <button className="sign__delete" type="button" onClick={() => removeSeason(sIdx)}>
+                                <i className="ti ti-x"></i>
+                              </button>
                             )}
                           </div>
                         </div>
@@ -375,7 +435,7 @@ const EditItemPage = () => {
                               </div>
                             </div>
                             {eIdx === season.episodes.length - 1 && (
-                               <div className="col-12 col-sm-4 col-md-3 col-xl-2">
+                              <div className="col-12 col-sm-4 col-md-3 col-xl-2">
                                 <button type="button" className="sign__btn sign__btn--add" onClick={() => addEpisode(sIdx)}>
                                   <span>add episode</span>
                                 </button>
@@ -386,14 +446,14 @@ const EditItemPage = () => {
                       ))}
                     </div>
                   ))}
-                   <div className="col-12">
-                        <button type="button" className="sign__btn sign__btn--add" onClick={addSeason}>
-                            <span>add season</span>
-                        </button>
-                    </div>
+                  <div className="col-12">
+                    <button type="button" className="sign__btn sign__btn--add" onClick={addSeason}>
+                      <span>add season</span>
+                    </button>
+                  </div>
                 </div>
               )}
-              
+
               <div className="col-12">
                 <button type="submit" className="sign__btn sign__btn--small" disabled={isSubmitting}>
                   <span>{isSubmitting ? 'Updating...' : 'Update Item'}</span>

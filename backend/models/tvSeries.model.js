@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
-// Schema con cho từng tập phim
 const episodeSchema = new Schema({
   episode_number: { type: Number, required: true },
   title: { type: String, required: true },
@@ -20,14 +19,12 @@ const episodeSchema = new Schema({
   },
 });
 
-// Schema con cho từng mùa
 const seasonSchema = new Schema({
   season_number: { type: Number, required: true },
   title: String,
-  episodes: [episodeSchema], // Mảng các tập phim
+  episodes: [episodeSchema],
 });
 
-// Schema chính cho phim bộ
 const tvSeriesSchema = new Schema(
   {
     title: {
@@ -39,10 +36,20 @@ const tvSeriesSchema = new Schema(
       type: String,
       required: true,
     },
+    background_image_url: String,
     cover_image_url: String,
-    release_year: Number,
+    release_year: {
+        type: Date, 
+        required: true,
+    },
+    running_time: {
+        type: Number, 
+        required: true,
+        min: 1
+    },
     genres: [String],
-    cast: [String],
+    directors: [String], 
+    actors: [String],
     seasons: [seasonSchema],
     category: {
       type: String,

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchItems, updateItemStatus } from '../redux/itemsSlice';
-
+import  MovieDetailModal  from "../components/modal/MovieDetailModal";
 function CatalogPage() {
     const dispatch = useDispatch();
     const { data: items, status: itemsStatus, error } = useSelector((state) => state.items);
@@ -12,7 +12,7 @@ function CatalogPage() {
             dispatch(fetchItems());
         }
     }, [itemsStatus, dispatch]);
-
+    const [viewItem, setViewItem] = useState(null);
     const [selectedItem, setSelectedItem] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -181,6 +181,15 @@ function CatalogPage() {
                                                         >
                                                             <i className="ti ti-lock"></i>
                                                         </button>
+                                                        <button
+                                                            type="button"
+                                                            data-bs-toggle="modal"
+                                                            className="catalog__btn catalog__btn--view"
+                                                            data-bs-target="#modal-view2"
+                                                            onClick={() => setViewItem(item)}
+                                                        >
+                                                            <i className="ti ti-eye"></i>
+                                                        </button>
                                                         <Link to={`/admin/edit-items/${item.id}`} className="catalog__btn catalog__btn--edit">
                                                             <i className="ti ti-edit"></i>
                                                         </Link>
@@ -340,6 +349,7 @@ function CatalogPage() {
                     </div>
                 </div>
             </div>
+            <MovieDetailModal viewItem={viewItem} />
         </>
     );
 }

@@ -19,25 +19,27 @@ const movieSchema = new Schema({
     },
     cover_image_url: String,
     background_image_url: String,
-    release_year: Number,
-    running_time: Number, 
+    release_year: {
+        type: Date, 
+        required: true,
+    },
+    running_time: {
+        type: Number, 
+        required: true,
+        min: 1
+    },
     age_rating: String,
     quality: {
         type: String,
         enum: ['HD 1080', 'HD 720', 'DVD', 'TS', 'FullHD'],
     },
-    genres: [{
-        type: Schema.Types.ObjectId,
-        ref: 'Genre' // Tham chiếu đến model Genre
-    }],
-    director: {
-        type: Schema.Types.ObjectId,
-        ref: 'Actor' // Tham chiếu đến model Actor
-    },
-    cast: [{
-        type: Schema.Types.ObjectId,
-        ref: 'Actor' // Tham chiếu đến model Actor
-    }],
+    // ---- THAY ĐỔI BẮT ĐẦU TỪ ĐÂY ----
+    genres: [String], // THAY ĐỔI: Chấp nhận một mảng các chuỗi tên thể loại
+
+    director: String, // THAY ĐỔI: Chấp nhận một chuỗi tên đạo diễn (hoặc nhiều tên nối lại)
+
+    actors: [String],   // THAY ĐỔI: Chấp nhận một mảng các chuỗi tên diễn viên
+    // ---- THAY ĐỔI KẾT THÚC TẠI ĐÂY ----
     country: String,
     imdb_rating: {
         type: Number,
@@ -47,22 +49,20 @@ const movieSchema = new Schema({
         type: Number,
         default: 0,
     },
-    // ---- Phần quan trọng cho IPFS ----
     video_source: {
         type: {
             type: String,
             default: 'ipfs'
         },
-        cid: { // Trường để lưu CID của file video chính
+        cid: {
             type: String,
             required: true,
         },
-        subtitles: [{ // Mảng lưu CID cho các file phụ đề
+        subtitles: [{
             language: String,
             cid: String,
         }]
     },
-    // ------------------------------------
     status: {
         type: String,
         enum: ['Visible', 'Hidden'],
