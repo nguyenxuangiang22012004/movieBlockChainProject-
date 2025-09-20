@@ -1,10 +1,9 @@
 import api from "../../config/axios"; 
 
-// Đăng nhập
+
 export const login = async (email, password) => {
   try {
     const res = await api.post("/auth/login", { email, password });
-    // lưu token vào localStorage
     if (res.data.token) {
       localStorage.setItem("auth_token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
@@ -15,7 +14,7 @@ export const login = async (email, password) => {
   }
 };
 
-// Đăng ký
+
 export const register = async (userData) => {
   try {
     const res = await api.post("/auth/register", userData);

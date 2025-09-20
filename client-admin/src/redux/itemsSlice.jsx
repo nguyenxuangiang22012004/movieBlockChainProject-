@@ -8,7 +8,6 @@ const ipfs = create({ url: 'http://127.0.0.1:5001/api/v0' });
 export const fetchItems = createAsyncThunk("items/fetchItems", async (_, { rejectWithValue }) => {
     try {
         const response = await axios.get("/catalog");
-        console.log(response);
         return response.data;
     } catch (error) {
         if (error.response && error.response.data) {
@@ -124,9 +123,15 @@ export const addNewTVSeries = createAsyncThunk('items/addNewTVSeries', async (fo
             title: formData.title,
             description: formData.description,
             cover_image_url: coverImageCid ? `http://127.0.0.1:8080/ipfs/${coverImageCid.toString()}` : '',
-            release_year: formData.release_year, 
+            background_image_url: formData.backgroundLink, 
+            release_year: formData.release_year,
+            running_time: parseInt(formData.runningTime, 10) || 0, // Add this
+            age_rating: formData.age, // Add this
+            quality: formData.quality, // Add this
             genres: formData.genres,
+            director: formData.directors.join(', '), // Add this
             actors: formData.actors,
+            country: formData.country.join(', '), // Add this
             seasons: seasonsPayload,
             status: 'Visible'
         };

@@ -422,7 +422,15 @@ const EditItemPage = () => {
                             </div>
                             <div className="col-12 col-md-6">
                               <div className="sign__group">
-                                <input type="text" className="sign__input" placeholder="Air date" value={ep.airDate} onChange={(e) => handleEpisodeChange(sIdx, eIdx, 'airDate', e.target.value)} />
+                                <input
+                                  type="date"
+                                  className="sign__input"
+                                  placeholder="Air date"
+                                  value={ep.airDate ? new Date(ep.airDate).toISOString().split("T")[0] : ""}
+                                  onChange={(e) =>
+                                    handleEpisodeChange(sIdx, eIdx, "airDate", e.target.value)
+                                  }
+                                />
                               </div>
                             </div>
                             <div className="col-12 col-sm-8 col-md-9 col-xl-10">
