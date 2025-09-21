@@ -101,11 +101,11 @@ const AddItemPage = () => {
       seasons: [
         ...prev.seasons,
         {
-          season_number: prev.seasons.length + 1, 
+          season_number: prev.seasons.length + 1,
           title: '',
           info: '',
           episodes: [{
-            episode_number: 1, 
+            episode_number: 1,
             title: '',
             airDate: '',
             video: null
@@ -134,7 +134,7 @@ const AddItemPage = () => {
         episodes: [
           ...season.episodes,
           {
-            episode_number: season.episodes.length + 1, 
+            episode_number: season.episodes.length + 1,
             title: '',
             airDate: '',
             video: null
@@ -164,14 +164,14 @@ const AddItemPage = () => {
   };
 
   const handleSeasonChange = (seasonIndex, field, value) => {
-    const newSeasons = formData.seasons.map((season, index) => {
-      if (index !== seasonIndex) {
-        return season;
-      }
-      return { ...season, [field]: value };
-    });
-    setFormData(prev => ({ ...prev, seasons: newSeasons }));
-  };
+  const newSeasons = formData.seasons.map((season, index) => {
+    if (index !== seasonIndex) {
+      return season;
+    }
+    return { ...season, [field]: value };
+  });
+  setFormData(prev => ({ ...prev, seasons: newSeasons }));
+};
 
   const handleEpisodeChange = (seasonIndex, episodeIndex, field, value) => {
     const newSeasons = formData.seasons.map((season, sIdx) => {
@@ -327,6 +327,7 @@ const AddItemPage = () => {
                             : ""
                         }
                         onChange={handleInputChange}
+                        required
                       />
                     </div>
                   </div>
@@ -419,12 +420,23 @@ const AddItemPage = () => {
                     <div key={seasonIndex} className="sign__season">
                       <div className="sign__season-head">
                         <div className="row">
-                          <div className="col-12 col-md-8 col-xl-9">
+                          <div className="col-12 col-md-8 col-xl-6">
                             <div className="sign__group">
                               <input type="text" className="sign__input" placeholder={`Season ${season.season_number} title`} value={season.title} onChange={(e) => handleSeasonChange(seasonIndex, 'title', e.target.value)} />
                             </div>
                           </div>
-                          <div className="col-12 col-md-4 col-xl-3">
+                          <div className="col-12 col-sm-6 col-md-4 col-xl-4">
+                            <div className="sign__group">
+                              <input
+                                type="text"
+                                className="sign__input"
+                                placeholder="Season info"
+                                value={season.info}
+                                onChange={(e) => handleSeasonChange(seasonIndex, 'info', e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <div className="col-12 col-md-4 col-xl-2">
                             {formData.seasons.length > 1 && (
                               <button className="sign__delete" type="button" onClick={() => removeSeason(seasonIndex)}>
                                 <i className="ti ti-x"></i>

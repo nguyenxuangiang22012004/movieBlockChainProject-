@@ -2,6 +2,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { create } from 'kubo-rpc-client';
 import axios from '../config/axios.js';
+import { catalogService } from '../services/catalogService.js';
 
 const ipfs = create({ url: 'http://127.0.0.1:5001/api/v0' });
 
@@ -106,6 +107,7 @@ export const addNewTVSeries = createAsyncThunk('items/addNewTVSeries', async (fo
                         return {
                             episode_number: episodeIndex + 1,
                             title: episode.title,
+                            
                             air_date: episode.airDate,
                             video_source: { cid: result.cid.toString() }
                         };
@@ -114,6 +116,7 @@ export const addNewTVSeries = createAsyncThunk('items/addNewTVSeries', async (fo
                 return {
                     season_number: seasonIndex + 1,
                     title: season.title,
+                    info: season.info,
                     episodes: episodesPayload
                 };
             })
@@ -162,6 +165,22 @@ export const updateItem = createAsyncThunk(
     }
 );
 
+export const deleteItem = createAsyncThunk(
+    "items/deleteItem",
+    async (id, { rejectWithValue }) => {
+        try {
+            await catalogService.deleteItem(id);
+            return id; // Trả về id để remove khỏi state
+        } catch (error) {
+            if (error.response && error.response.data) {
+                return rejectWithValue(error.response.data.message);
+            } else {
+                return rejectWithValue(error.message || "Failed to delete item");
+            }
+        }
+    }
+);
+
 const itemsSlice = createSlice({
     name: 'items',
     initialState: {
@@ -197,6 +216,20 @@ const itemsSlice = createSlice({
                     state.data[idx] = { ...state.data[idx], ...action.payload };
                 }
             })
+            .addCase(deleteItem.pending, (state) => {
+    state.status = 'loading';
+})
+.addCase(deleteItem.fulfilled, (state, action) => {
+    state.status = 'succeeded';
+    // Remove item khỏi data array
+    state.data = state.data.filter(item => 
+        (item.id || item._id) !== action.payload
+    );
+})
+.addCase(deleteItem.rejected, (state, action) => {
+    state.status = 'failed';
+    state.error = action.payload;
+})
             .addMatcher(
                 (action) => action.type === addNewMovie.pending.type || action.type === addNewTVSeries.pending.type || action.type === updateItem.pending.type,
                 (state) => {
@@ -216,7 +249,8 @@ const itemsSlice = createSlice({
                     state.status = 'failed';
                     state.error = action.payload;
                 }
-            );
+            )
+            
     }
 });
 

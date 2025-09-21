@@ -22,6 +22,7 @@ const episodeSchema = new Schema({
 const seasonSchema = new Schema({
   season_number: { type: Number, required: true },
   title: String,
+  info: { type: String, required: true },
   episodes: [episodeSchema],
 });
 
@@ -36,6 +37,7 @@ const tvSeriesSchema = new Schema(
       type: String,
       required: true,
     },
+
     background_image_url: String,
     cover_image_url: String,
     release_year: {
@@ -55,6 +57,7 @@ const tvSeriesSchema = new Schema(
       type: String,
       default: "TVSeries",
     },
+    age_rating: String,
     status: {
       type: String,
       enum: ["Visible", "Hidden"],

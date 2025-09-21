@@ -9,6 +9,21 @@ export const getCatalog = async (req, res) => {
   }
 };
 
+export const getCatalogItemById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await catalogService.getCatalogItemById(id);
+    if (result.success) {
+      res.status(200).json(result.data);
+    } else {
+      res.status(404).json({ message: result.message });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 export const updateStatusCatalog = async (req, res) => {
   try {
     const { type, id } = req.params;
@@ -26,5 +41,34 @@ export const updateStatusCatalog = async (req, res) => {
       return res.status(400).json({ message: err.message });
     }
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const updateCatalogItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const result = await catalogService.updateCatalogItem(id, updateData);
+    if (result.success) {
+      res.status(200).json(result.data);
+    } else {
+      res.status(404).json({ message: result.message });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteCatalogItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await catalogService.deleteCatalogItem(id);
+    if (result.success) {
+      res.status(200).json(result.data);
+    } else {
+      res.status(404).json({ message: result.message });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

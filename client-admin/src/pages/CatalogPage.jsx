@@ -1,17 +1,18 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchItems, updateItemStatus } from '../redux/itemsSlice';
-import  MovieDetailModal  from "../components/modal/MovieDetailModal";
+import { fetchItems, updateItemStatus, deleteItem } from '../redux/itemsSlice'; // Thêm deleteItem
+import MovieDetailModal from "../components/modal/MovieDetailModal";
+
 function CatalogPage() {
     const dispatch = useDispatch();
     const { data: items, status: itemsStatus, error } = useSelector((state) => state.items);
 
-    useEffect(() => {
-        if (itemsStatus === 'idle') {
-            dispatch(fetchItems());
-        }
-    }, [itemsStatus, dispatch]);
+    // State cho delete modal
+    const [itemToDelete, setItemToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // Các state khác giữ nguyên
     const [viewItem, setViewItem] = useState(null);
     const [selectedItem, setSelectedItem] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -20,7 +21,29 @@ function CatalogPage() {
     const itemsPerPage = 10;
     const sortSelectRef = useRef(null);
 
-    // Logic sắp xếp
+    // Hàm xử lý delete
+    const handleDeleteItem = async () => {
+        if (!itemToDelete) return;
+        
+        setIsDeleting(true);
+        try {
+            await dispatch(deleteItem(itemToDelete.id || itemToDelete._id)).unwrap();
+            alert('Item deleted successfully!');
+            setItemToDelete(null);
+        } catch (error) {
+            alert(`Error deleting item: ${error}`);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    // Các logic khác giữ nguyên (sorting, filtering, pagination, etc.)
+    useEffect(() => {
+        if (itemsStatus === 'idle') {
+            dispatch(fetchItems());
+        }
+    }, [itemsStatus, dispatch]);
+
     const sortedItems = [...items].sort((a, b) => {
         if (sortBy === '1') {
             return (b.rating || 0) - (a.rating || 0);
@@ -33,7 +56,6 @@ function CatalogPage() {
         }
     });
 
-    // Logic tìm kiếm
     const filteredItems = sortedItems.filter(item =>
         item.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -42,28 +64,48 @@ function CatalogPage() {
         setCurrentPage(1);
     }, [searchTerm, sortBy]);
 
-    // Khởi tạo và hủy SlimSelect
     useEffect(() => {
-        if (window.SlimSelect && !sortSelectRef.current) {
-            sortSelectRef.current = new window.SlimSelect({
-                select: '#filter__sort',
-                settings: { showSearch: false },
-                events: {
-                    afterChange: (newVal) => {
-                        setSortBy(newVal[0].value);
-                    }
+        if (window.SlimSelect && document.querySelector('#filter__sort')) {
+            if (sortSelectRef.current && typeof sortSelectRef.current.destroy === 'function') {
+                try {
+                    sortSelectRef.current.destroy();
+                } catch (error) {
+                    console.warn('Error destroying SlimSelect:', error);
                 }
-            });
-        }
-        return () => {
-            if (sortSelectRef.current) {
-                sortSelectRef.current.destroy();
                 sortSelectRef.current = null;
             }
-        };
-    }, []);
 
-    // Logic phân trang
+            try {
+                sortSelectRef.current = new window.SlimSelect({
+                    select: '#filter__sort',
+                    settings: { showSearch: false },
+                    events: {
+                        afterChange: (newVal) => {
+                            setSortBy(newVal[0].value);
+                        }
+                    }
+                });
+            } catch (error) {
+                console.warn('Error creating SlimSelect:', error);
+            }
+        }
+
+        return () => {
+            if (sortSelectRef.current) {
+                try {
+                    if (typeof sortSelectRef.current.destroy === 'function') {
+                        sortSelectRef.current.destroy();
+                    }
+                } catch (error) {
+                    console.warn('Error destroying SlimSelect in cleanup:', error);
+                } finally {
+                    sortSelectRef.current = null;
+                }
+            }
+        };
+    }, [items]);
+
+    // Logic pagination giữ nguyên
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
@@ -104,8 +146,8 @@ function CatalogPage() {
     return (
         <>
             <div className="container-fluid">
+                {/* Main content giữ nguyên */}
                 <div className="row">
-                    {/* main title */}
                     <div className="col-12">
                         <div className="main__title">
                             <h2>Catalog</h2>
@@ -135,9 +177,7 @@ function CatalogPage() {
                             </div>
                         </div>
                     </div>
-                    {/* end main title */}
 
-                    {/* items */}
                     <div className="col-12">
                         <div className="catalog catalog--1">
                             <table className="catalog__table">
@@ -198,6 +238,7 @@ function CatalogPage() {
                                                             data-bs-toggle="modal"
                                                             className="catalog__btn catalog__btn--delete"
                                                             data-bs-target="#modal-delete"
+                                                            onClick={() => setItemToDelete(item)} // Cập nhật onClick
                                                         >
                                                             <i className="ti ti-trash"></i>
                                                         </button>
@@ -216,9 +257,8 @@ function CatalogPage() {
                             </table>
                         </div>
                     </div>
-                    {/* end items */}
 
-                    {/* paginator */}
+                    {/* Pagination giữ nguyên */}
                     {filteredItems.length > 0 && (
                         <div className="col-12">
                             <div className="main__paginator">
@@ -290,11 +330,10 @@ function CatalogPage() {
                             </div>
                         </div>
                     )}
-                    {/* end paginator */}
                 </div>
             </div>
 
-            {/* status modal */}
+            {/* Status modal giữ nguyên */}
             <div className="modal fade" id="modal-status" tabIndex="-1" aria-hidden="true">
                 <div className="modal-dialog modal-dialog-centered">
                     <div className="modal-content">
@@ -309,7 +348,6 @@ function CatalogPage() {
                                         onClick={() => {
                                             if (selectedItem) {
                                                 const newStatus = selectedItem.status === "Visible" ? "Hidden" : "Visible";
-                                                // dùng category hoặc type từ item
                                                 const type = selectedItem.category === "Movie" ? "movies" : "tvseries";
                                                 dispatch(updateItemStatus({ type, id: selectedItem._id || selectedItem.id, status: newStatus }));
                                             }
@@ -327,20 +365,33 @@ function CatalogPage() {
                     </div>
                 </div>
             </div>
-
-            {/* delete modal */}
             <div className="modal fade" id="modal-delete" tabIndex="-1" aria-hidden="true">
                 <div className="modal-dialog modal-dialog-centered">
                     <div className="modal-content">
                         <div className="modal__content">
                             <form className="modal__form">
                                 <h4 className="modal__title">Item delete</h4>
-                                <p className="modal__text">Are you sure to permanently delete this item?</p>
+                                <p className="modal__text">
+                                    Are you sure to permanently delete "{itemToDelete?.title}"?<br/>
+                                    This action cannot be undone.
+                                </p>
                                 <div className="modal__btns">
-                                    <button className="modal__btn modal__btn--apply" type="button">
-                                        <span>Delete</span>
+                                    <button 
+                                        className="modal__btn modal__btn--apply" 
+                                        type="button"
+                                        onClick={handleDeleteItem}
+                                        disabled={isDeleting}
+                                        data-bs-dismiss="modal"
+                                    >
+                                        <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
                                     </button>
-                                    <button className="modal__btn modal__btn--dismiss" type="button" data-bs-dismiss="modal" aria-label="Close">
+                                    <button 
+                                        className="modal__btn modal__btn--dismiss" 
+                                        type="button" 
+                                        data-bs-dismiss="modal" 
+                                        aria-label="Close"
+                                        disabled={isDeleting}
+                                    >
                                         <span>Dismiss</span>
                                     </button>
                                 </div>
@@ -349,6 +400,7 @@ function CatalogPage() {
                     </div>
                 </div>
             </div>
+            
             <MovieDetailModal viewItem={viewItem} />
         </>
     );

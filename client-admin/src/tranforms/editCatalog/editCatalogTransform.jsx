@@ -8,10 +8,10 @@ export async function transformFormData(formData, oldData) {
     running_time: formData.runningTime || oldData.running_time,
     age_rating: formData.age || oldData.age_rating,
     quality: formData.quality || oldData.quality,
-    genres: formData.genres.length > 0 ? formData.genres : oldData.genres,
-    director: formData.directors.length > 0 ? formData.directors[0] : oldData.director,
-    cast: formData.actors.length > 0 ? formData.actors : oldData.cast,
-    country: formData.countries.length > 0 ? formData.countries[0] : oldData.country,
+    genres: Array.isArray(formData.genres) && formData.genres.length > 0 ? formData.genres : oldData.genres,
+    director: Array.isArray(formData.directors) && formData.directors.length > 0 ? formData.directors[0] : oldData.director,
+    cast: Array.isArray(formData.actors) && formData.actors.length > 0 ? formData.actors : oldData.cast,
+    country: Array.isArray(formData.countries) && formData.countries.length > 0 ? formData.countries[0] : oldData.country,
   };
 
   if (formData.itemType === "movie") {
@@ -33,6 +33,7 @@ export async function transformFormData(formData, oldData) {
         episodes: s.episodes.map((ep, j) => ({
           episode_number: j + 1,
           title: ep.title || oldData.seasons?.[i]?.episodes?.[j]?.title,
+          info: ep.info || oldData.seasons?.[i]?.episodes?.[j]?.info,
           air_date: ep.airDate || oldData.seasons?.[i]?.episodes?.[j]?.air_date,
           video_source: {
             cid: ep.video || oldData.seasons?.[i]?.episodes?.[j]?.video_source?.cid || null,
