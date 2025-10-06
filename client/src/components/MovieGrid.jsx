@@ -5,7 +5,7 @@ import { fetchMovies } from '../store/slices/movieSlice';
 
 function MovieGrid() {
   const dispatch = useDispatch();
-  const { movies, loading, error } = useSelector((state) => state.movies);
+  const { filteredMovies, movies, loading, error } = useSelector((state) => state.movies);
   const [displayedMovies, setDisplayedMovies] = useState([]);
   const [page, setPage] = useState(1);
   const itemsPerPage = 6;
@@ -17,16 +17,16 @@ function MovieGrid() {
     }
   }, [dispatch, movies.length]);
 
-  // Cập nhật displayedMovies khi movies hoặc page thay đổi
+  // Cập nhật displayedMovies khi filteredMovies hoặc page thay đổi
   useEffect(() => {
-    setDisplayedMovies(movies.slice(0, page * itemsPerPage));
-  }, [movies, page]);
+    setDisplayedMovies(filteredMovies.slice(0, page * itemsPerPage));
+  }, [filteredMovies, page]);
 
   const handleLoadMore = () => {
     setPage((prev) => prev + 1);
   };
 
-  const hasMoreMovies = displayedMovies.length < movies.length;
+  const hasMoreMovies = displayedMovies.length < filteredMovies.length;
 
   return (
     <div className="section section--catalog">
@@ -39,13 +39,13 @@ function MovieGrid() {
         <div className="row">
           {displayedMovies.map((movie) => (
             <MovieCard
-              key={movie.id}
+              key={movie.id || movie._id}
               movie={{
-                id: movie.id,
+                id: movie.id || movie._id,
                 cover: movie.cover_image_url,
                 rate: movie.imdb_rating || movie.rating || 0,
                 title: movie.title,
-                categories: movie.genres,
+                categories: movie.genres || [],
               }}
             />
           ))}

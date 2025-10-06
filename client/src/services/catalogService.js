@@ -5,10 +5,6 @@ export const getAll = async () => {
     console.log('📡 catalogService.getAll() called');
     
     const response = await api.get("/catalog");
-    console.log('📨 Full API response:', JSON.stringify(response, null, 2));
-    console.log('📊 Response status:', response.status);
-    console.log('📦 Response data:', response.data);
-    
     // Nếu response.data là mảng, chuyển thành định dạng { success: true, data: [...] }
     if (Array.isArray(response.data)) {
       return { success: true, data: response.data };
