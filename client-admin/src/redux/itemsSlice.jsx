@@ -9,7 +9,7 @@ const ipfs = create({ url: 'http://127.0.0.1:5001/api/v0' });
 export const fetchItems = createAsyncThunk("items/fetchItems", async (_, { rejectWithValue }) => {
     try {
         const response = await axios.get("/catalog");
-        return response.data;
+        return response.data.data;
     } catch (error) {
         if (error.response && error.response.data) {
             return rejectWithValue(error.response.data.message);

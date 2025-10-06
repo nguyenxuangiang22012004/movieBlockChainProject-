@@ -3,7 +3,7 @@ import * as catalogService from "../../services/upload/catalogService.js";
 export const getCatalog = async (req, res) => {
   const result = await catalogService.getCatalog();
   if (result.success) {
-    res.status(200).json(result.data);
+    res.json(result);
   } else {
     res.status(500).json({ message: result.message });
   }
