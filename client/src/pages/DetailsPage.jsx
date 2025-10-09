@@ -99,6 +99,15 @@ const photosData = [
   { id: 6, src: '/img/gallery/project-6.jpg', caption: 'Some image caption 6' },
 ];
 
+// Định nghĩa các chất lượng video có sẵn
+const VIDEO_QUALITIES = [
+  { label: '360p', value: '360' },
+  { label: '480p', value: '480' },
+  { label: '720p', value: '720' },
+  { label: '1080p', value: '1080' },
+  { label: 'Auto', value: 'auto' }
+];
+
 function DetailsPage() {
   const { movieId } = useParams();
   const dispatch = useDispatch();
@@ -108,6 +117,8 @@ function DetailsPage() {
   const [selectedSeason, setSelectedSeason] = useState(0);
   const [selectedEpisode, setSelectedEpisode] = useState(0);
   const [slimSelectInstances, setSlimSelectInstances] = useState([]);
+  const [selectedQuality, setSelectedQuality] = useState('auto');
+  const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
     if (!currentMovie || currentMovie._id !== movieId) {
@@ -122,7 +133,43 @@ function DetailsPage() {
     let playerInstance = null;
     if (window.Plyr && playerRef.current) {
       playerInstance = new window.Plyr(playerRef.current, {
-        // autoplay: true // Thêm tùy chọn autoplay
+        controls: [
+          'play-large',
+          'play',
+          'progress',
+          'current-time',
+          'duration',
+          'mute',
+          'volume',
+          'settings',
+          'pip',
+          'airplay',
+          'fullscreen'
+        ],
+        settings: ['quality', 'speed', 'loop'],
+        quality: {
+          default: selectedQuality === 'auto' ? 1080 : parseInt(selectedQuality),
+          options: [360, 480, 720, 1080],
+          forced: true,
+          onChange: (quality) => {
+            console.log('Quality changed to:', quality);
+            setSelectedQuality(quality.toString());
+          }
+        }
+      });
+
+      // Lưu thời gian hiện tại khi thay đổi chất lượng
+      playerInstance.on('qualitychange', (event) => {
+        const currentTime = playerInstance.currentTime;
+        setCurrentTime(currentTime);
+        
+        // Tự động tiếp tục phát từ vị trí cũ
+        setTimeout(() => {
+          if (playerInstance && currentTime > 0) {
+            playerInstance.currentTime = currentTime;
+            playerInstance.play();
+          }
+        }, 100);
       });
     }
 
@@ -175,21 +222,34 @@ function DetailsPage() {
         }
       });
     };
-  }, []);
+  }, [selectedQuality]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
   };
 
-  const getVideoUrl = () => {
+  const getVideoUrl = (quality = selectedQuality) => {
     if (!currentMovie) return '';
+    
+    let baseCid = '';
+    
     if (currentMovie.category === 'Movie') {
-      return currentMovie.video_source?.cid ? `http://127.0.0.1:8080/ipfs/${currentMovie.video_source.cid}` : '';
+      baseCid = currentMovie.video_source?.cid;
     } else if (currentMovie.category === 'TVSeries' && currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
       const episode = currentMovie.seasons[selectedSeason].episodes[selectedEpisode];
-      return episode.video_source?.cid ? `http://127.0.0.1:8080/ipfs/${episode.video_source.cid}` : '';
+      baseCid = episode.video_source?.cid;
     }
-    return '';
+    
+    if (!baseCid) return '';
+    
+    // Nếu chọn auto hoặc không có chất lượng cụ thể, dùng URL gốc
+    if (quality === 'auto') {
+      return `http://127.0.0.1:8080/ipfs/${baseCid}`;
+    }
+    
+    // Giả sử các file chất lượng khác nhau được lưu với suffix _360p, _480p, etc.
+    // Bạn có thể điều chỉnh logic này tùy theo cách bạn lưu trữ video
+    return `http://127.0.0.1:8080/ipfs/${baseCid}?quality=${quality}`;
   };
 
   const getRelatedMovies = () => {
@@ -277,8 +337,11 @@ function DetailsPage() {
             <div className="col-12 col-xl-6">
               <div className="section__player">
                 {videoUrl ? (
-                  <video ref={playerRef} controls crossorigin playsinline poster={currentMovie.cover_image_url} id="player">
-                    <source src={videoUrl} type="video/mp4" />
+                  <video key={videoUrl} ref={playerRef} controls crossorigin playsinline poster={currentMovie.cover_image_url} id="player">
+                    <source src={videoUrl} type="video/mp4" size="360" />
+                    <source src={videoUrl} type="video/mp4" size="480" />
+                    <source src={videoUrl} type="video/mp4" size="720" />
+                    <source src={videoUrl} type="video/mp4" size="1080" />
                     {currentMovie.subtitles && currentMovie.subtitles.map((sub, index) => (
                       <track key={index} kind="subtitles" srcLang={sub.lang} label={sub.label} src={sub.url} />
                     ))}
