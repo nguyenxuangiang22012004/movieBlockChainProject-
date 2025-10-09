@@ -26,6 +26,35 @@ const commentsData = [
       }
     ]
   },
+  {
+    id: 2,
+    avatar: '/img/user.svg',
+    name: 'John Doe',
+    time: '11.08.2018, 11:11',
+    text: 'It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.',
+    likes: 11,
+    dislikes: 1,
+    isQuote: true,
+    quoteText: 'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable.'
+  },
+  {
+    id: 3,
+    avatar: '/img/user.svg',
+    name: 'John Doe',
+    time: '07.08.2018, 14:33',
+    text: 'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn\'t anything embarrassing hidden in the middle of text.',
+    likes: 99,
+    dislikes: 35
+  },
+  {
+    id: 4,
+    avatar: '/img/user.svg',
+    name: 'John Doe',
+    time: '02.08.2018, 15:24',
+    text: 'Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for \'lorem ipsum\' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).',
+    likes: 74,
+    dislikes: 13
+  }
 ];
 
 const reviewsData = [
@@ -36,8 +65,29 @@ const reviewsData = [
     name: 'John Doe',
     time: '24.08.2018, 17:53',
     rating: 6,
+    ratingClass: 'reviews__rating--yellow',
     text: 'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn\'t anything embarrassing hidden in the middle of text.'
   },
+  {
+    id: 2,
+    avatar: '/img/user.svg',
+    title: 'Best Marvel movie in my opinion',
+    name: 'John Doe',
+    time: '24.08.2018, 17:53',
+    rating: 9,
+    ratingClass: 'reviews__rating--green',
+    text: 'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn\'t anything embarrassing hidden in the middle of text.'
+  },
+  {
+    id: 3,
+    avatar: '/img/user.svg',
+    title: 'Best Marvel movie in my opinion',
+    name: 'John Doe',
+    time: '24.08.2018, 17:53',
+    rating: 5,
+    ratingClass: 'reviews__rating--red',
+    text: 'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn\'t anything embarrassing hidden in the middle of text.'
+  }
 ];
 
 const photosData = [
@@ -71,10 +121,10 @@ function DetailsPage() {
   useEffect(() => {
     let playerInstance = null;
     if (window.Plyr && playerRef.current) {
-    playerInstance = new window.Plyr(playerRef.current, {
-      // autoplay: true // Thêm tùy chọn autoplay
-    });
-  }
+      playerInstance = new window.Plyr(playerRef.current, {
+        // autoplay: true // Thêm tùy chọn autoplay
+      });
+    }
 
     const instances = [];
     if (window.SlimSelect) {
@@ -158,28 +208,16 @@ function DetailsPage() {
       <div className="section__details-bg" data-bg="img/bg/details__bg.jpg"></div>
       {/* end details background */}
 
-      {/* page title */}
-      <section className="section section--first">
-        <div className="container">
-          <div className="row">
-            <div className="col-12">
-              <div className="section__wrap">
-                <h1 className="section__title section__title--head">{currentMovie.title}</h1>
-                <ul className="breadcrumbs">
-                  <li className="breadcrumbs__item"><Link to="/">Home</Link></li>
-                  <li className="breadcrumbs__item breadcrumbs__item--active">Details</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      {/* end page title */}
-
-      {/* details content */}
+      {/* details */}
       <section className="section section--details">
         <div className="container">
           <div className="row">
+            {/* title */}
+            <div className="col-12">
+              <h1 className="section__title section__title--head">{currentMovie.title}</h1>
+            </div>
+            {/* end title */}
+
             {/* content */}
             <div className="col-12 col-xl-6">
               <div className="item item--details">
@@ -239,14 +277,26 @@ function DetailsPage() {
             <div className="col-12 col-xl-6">
               <div className="section__player">
                 {videoUrl ? (
-                  <video ref={playerRef} controls crossorigin playsinline poster={currentMovie.cover_image_url} id="player" autoPlay>
+                  <video ref={playerRef} controls crossorigin playsinline poster={currentMovie.cover_image_url} id="player">
                     <source src={videoUrl} type="video/mp4" />
                     {currentMovie.subtitles && currentMovie.subtitles.map((sub, index) => (
                       <track key={index} kind="subtitles" srcLang={sub.lang} label={sub.label} src={sub.url} />
                     ))}
                   </video>
                 ) : (
-                  <div>No video source available</div>
+                  <video ref={playerRef} controls crossorigin playsinline poster="../../cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.jpg" id="player">
+                    {/* Video files */}
+                    <source src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-576p.mp4" type="video/mp4" size="576" />
+                    <source src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-720p.mp4" type="video/mp4" size="720" />
+                    <source src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-1080p.mp4" type="video/mp4" size="1080" />
+
+                    {/* Caption files */}
+                    <track kind="captions" label="English" srcLang="en" src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.en.vtt" default />
+                    <track kind="captions" label="Français" srcLang="fr" src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.fr.vtt" />
+
+                    {/* Fallback for browsers that don't support the <video> element */}
+                    <a href="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-576p.mp4" download>Download</a>
+                  </video>
                 )}
               </div>
 
@@ -269,10 +319,10 @@ function DetailsPage() {
                   </select>
 
                   <select className="section__item-select" name="sync" id="filter__sync">
-                    <option value="0">No subtitles</option>
-                    {currentMovie.subtitles?.map((sub, index) => (
-                      <option key={index} value={sub.lang}>{sub.label}</option>
-                    ))}
+                    <option value="0">Eng.Original</option>
+                    <option value="1">NewStudio</option>
+                    <option value="2">LostFilm</option>
+                    <option value="3">HotFlix</option>
                   </select>
                 </div>
               )}
@@ -281,7 +331,7 @@ function DetailsPage() {
           </div>
         </div>
       </section>
-      {/* end details content */}
+      {/* end details */}
 
       {/* content */}
       <section className="content">
@@ -341,13 +391,22 @@ function DetailsPage() {
                         <div className="comments">
                           <ul className="comments__list">
                             {commentsData.map(comment => (
-                              <li key={comment.id} className="comments__item">
+                              <li key={comment.id} className={`comments__item ${comment.isQuote ? 'comments__item--quote' : ''}`}>
                                 <div className="comments__autor">
                                   <img className="comments__avatar" src={comment.avatar} alt="" />
                                   <span className="comments__name">{comment.name}</span>
                                   <span className="comments__time">{comment.time}</span>
                                 </div>
-                                <p className="comments__text">{comment.text}</p>
+                                <p className="comments__text">
+                                  {comment.isQuote ? (
+                                    <>
+                                      <span>{comment.quoteText}</span>
+                                      {comment.text}
+                                    </>
+                                  ) : (
+                                    comment.text
+                                  )}
+                                </p>
                                 <div className="comments__actions">
                                   <div className="comments__rate">
                                     <button type="button"><i className="ti ti-thumb-up"></i>{comment.likes}</button>
@@ -357,7 +416,7 @@ function DetailsPage() {
                                   <button type="button"><i className="ti ti-quote"></i>Quote</button>
                                 </div>
 
-                                {comment.replies.map(reply => (
+                                {comment.replies && comment.replies.map(reply => (
                                   <li key={reply.id} className="comments__item comments__item--answer">
                                     <div className="comments__autor">
                                       <img className="comments__avatar" src={reply.avatar} alt="" />
@@ -378,6 +437,44 @@ function DetailsPage() {
                               </li>
                             ))}
                           </ul>
+
+                          {/* paginator mobile */}
+                          <div className="paginator-mob paginator-mob--comments">
+                            <span className="paginator-mob__pages">5 of 628</span>
+
+                            <ul className="paginator-mob__nav">
+                              <li>
+                                <a href="#">
+                                  <i className="ti ti-chevron-left"></i>
+                                  <span>Prev</span>
+                                </a>
+                              </li>
+                              <li>
+                                <a href="#">
+                                  <span>Next</span>
+                                  <i className="ti ti-chevron-right"></i>
+                                </a>
+                              </li>
+                            </ul>
+                          </div>
+                          {/* end paginator mobile */}
+
+                          {/* paginator desktop */}
+                          <ul className="paginator paginator--comments">
+                            <li className="paginator__item paginator__item--prev">
+                              <a href="#"><i className="ti ti-chevron-left"></i></a>
+                            </li>
+                            <li className="paginator__item"><a href="#">1</a></li>
+                            <li className="paginator__item paginator__item--active"><a href="#">2</a></li>
+                            <li className="paginator__item"><a href="#">3</a></li>
+                            <li className="paginator__item"><a href="#">4</a></li>
+                            <li className="paginator__item"><span>...</span></li>
+                            <li className="paginator__item"><a href="#">36</a></li>
+                            <li className="paginator__item paginator__item--next">
+                              <a href="#"><i className="ti ti-chevron-right"></i></a>
+                            </li>
+                          </ul>
+                          {/* end paginator desktop */}
 
                           <form action="#" className="sign__form sign__form--comments">
                             <div className="sign__group">
@@ -404,11 +501,7 @@ function DetailsPage() {
                                   <img className="reviews__avatar" src={review.avatar} alt="" />
                                   <span className="reviews__name">{review.title}</span>
                                   <span className="reviews__time">by {review.name}, {review.time}</span>
-                                  <span className={`reviews__rating ${
-                                    review.rating >= 8 ? 'reviews__rating--green' : 
-                                    review.rating >= 6 ? 'reviews__rating--yellow' : 
-                                    'reviews__rating--red'
-                                  }`}>
+                                  <span className={`reviews__rating ${review.ratingClass}`}>
                                     {review.rating}
                                   </span>
                                 </div>
@@ -416,6 +509,44 @@ function DetailsPage() {
                               </li>
                             ))}
                           </ul>
+
+                          {/* paginator mobile */}
+                          <div className="paginator-mob paginator-mob--comments">
+                            <span className="paginator-mob__pages">5 of 628</span>
+
+                            <ul className="paginator-mob__nav">
+                              <li>
+                                <a href="#">
+                                  <i className="ti ti-chevron-left"></i>
+                                  <span>Prev</span>
+                                </a>
+                              </li>
+                              <li>
+                                <a href="#">
+                                  <span>Next</span>
+                                  <i className="ti ti-chevron-right"></i>
+                                </a>
+                              </li>
+                            </ul>
+                          </div>
+                          {/* end paginator mobile */}
+
+                          {/* paginator desktop */}
+                          <ul className="paginator paginator--comments">
+                            <li className="paginator__item paginator__item--prev">
+                              <a href="#"><i className="ti ti-chevron-left"></i></a>
+                            </li>
+                            <li className="paginator__item"><a href="#">1</a></li>
+                            <li className="paginator__item paginator__item--active"><a href="#">2</a></li>
+                            <li className="paginator__item"><a href="#">3</a></li>
+                            <li className="paginator__item"><a href="#">4</a></li>
+                            <li className="paginator__item"><span>...</span></li>
+                            <li className="paginator__item"><a href="#">36</a></li>
+                            <li className="paginator__item paginator__item--next">
+                              <a href="#"><i className="ti ti-chevron-right"></i></a>
+                            </li>
+                          </ul>
+                          {/* end paginator desktop */}
 
                           <form action="#" className="sign__form sign__form--comments">
                             <div className="sign__group">
