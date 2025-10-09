@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getAll } from '../../services/catalogService';
+import { getAll, getCatalogItemById } from '../../services/catalogService'; 
 
 export const fetchMovies = createAsyncThunk(
   'movies/fetchMovies',
@@ -7,11 +7,27 @@ export const fetchMovies = createAsyncThunk(
     console.log('🚀 fetchMovies thunk started');
     try {
       const response = await getAll();
-      console.log('API response:', response); // Debug dữ liệu API
       return response;
     } catch (error) {
       console.error('💥 fetchMovies error:', error);
-      return rejectWithValue(error.message || 'Failed to fetch movies');
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchMovieById = createAsyncThunk(
+  'movies/fetchMovieById',
+  async (id, { rejectWithValue }) => {
+    console.log('🚀 fetchMovieById thunk started for ID:', id);
+    try {
+      const response = await getCatalogItemById(id);
+      if (!response.success) {
+        throw new Error(response.message || 'Movie not found');
+      }
+      return response.data;
+    } catch (error) {
+      console.error('💥 fetchMovieById error:', error);
+      return rejectWithValue(error.message || 'Failed to fetch movie details');
     }
   }
 );
@@ -21,6 +37,7 @@ const movieSlice = createSlice({
   initialState: {
     movies: [],
     filteredMovies: [], // Danh sách phim sau khi lọc
+    currentMovie: null, // Thêm: Phim chi tiết đang xem
     filters: {
       genre: '0', // Mặc định: All genres
       quality: '0', // Mặc định: Any quality
@@ -116,6 +133,19 @@ const movieSlice = createSlice({
         state.loading = false;
         state.error = action.payload || 'Error fetching movies';
         console.error('Error fetching movies:', action.payload);
+      })
+      .addCase(fetchMovieById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchMovieById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentMovie = action.payload;
+      })
+      .addCase(fetchMovieById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Error fetching movie details';
+        console.error('Error fetching movie details:', action.payload);
       });
   },
 });

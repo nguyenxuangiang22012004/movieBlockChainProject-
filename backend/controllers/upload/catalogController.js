@@ -13,16 +13,17 @@ export const getCatalogItemById = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await catalogService.getCatalogItemById(id);
+    
     if (result.success) {
-      res.status(200).json(result.data);
+      // ✅ FIX: Trả về cả object result thay vì chỉ result.data
+      res.status(200).json(result);
     } else {
-      res.status(404).json({ message: result.message });
+      res.status(404).json({ success: false, message: result.message });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 export const updateStatusCatalog = async (req, res) => {
   try {
@@ -49,13 +50,15 @@ export const updateCatalogItem = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
     const result = await catalogService.updateCatalogItem(id, updateData);
+    
     if (result.success) {
-      res.status(200).json(result.data);
+      // ✅ Có thể trả về result hoặc result.data, tùy frontend xử lý
+      res.status(200).json(result);
     } else {
-      res.status(404).json({ message: result.message });
+      res.status(404).json({ success: false, message: result.message });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -63,12 +66,13 @@ export const deleteCatalogItem = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await catalogService.deleteCatalogItem(id);
+    
     if (result.success) {
-      res.status(200).json(result.data);
+      res.status(200).json(result);
     } else {
-      res.status(404).json({ message: result.message });
+      res.status(404).json({ success: false, message: result.message });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
