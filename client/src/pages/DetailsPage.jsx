@@ -99,14 +99,6 @@ const photosData = [
   { id: 6, src: '/img/gallery/project-6.jpg', caption: 'Some image caption 6' },
 ];
 
-// Định nghĩa các chất lượng video có sẵn
-const VIDEO_QUALITIES = [
-  { label: '360p', value: '360' },
-  { label: '480p', value: '480' },
-  { label: '720p', value: '720' },
-  { label: '1080p', value: '1080' },
-  { label: 'Auto', value: 'auto' }
-];
 
 function DetailsPage() {
   const { movieId } = useParams();
@@ -119,6 +111,9 @@ function DetailsPage() {
   const [slimSelectInstances, setSlimSelectInstances] = useState([]);
   const [selectedQuality, setSelectedQuality] = useState('auto');
   const [currentTime, setCurrentTime] = useState(0);
+  const [videoQualities, setVideoQualities] = useState([]);
+  const [currentQuality, setCurrentQuality] = useState('auto');
+
 
   useEffect(() => {
     if (!currentMovie || currentMovie._id !== movieId) {
@@ -128,128 +123,111 @@ function DetailsPage() {
       dispatch(fetchMovies());
     }
   }, [dispatch, movieId, currentMovie, movies.length]);
-
-  useEffect(() => {
-    let playerInstance = null;
-    if (window.Plyr && playerRef.current) {
-      playerInstance = new window.Plyr(playerRef.current, {
-        controls: [
-          'play-large',
-          'play',
-          'progress',
-          'current-time',
-          'duration',
-          'mute',
-          'volume',
-          'settings',
-          'pip',
-          'airplay',
-          'fullscreen'
-        ],
-        settings: ['quality', 'speed', 'loop'],
-        quality: {
-          default: selectedQuality === 'auto' ? 1080 : parseInt(selectedQuality),
-          options: [360, 480, 720, 1080],
-          forced: true,
-          onChange: (quality) => {
-            console.log('Quality changed to:', quality);
-            setSelectedQuality(quality.toString());
-          }
-        }
-      });
-
-      // Lưu thời gian hiện tại khi thay đổi chất lượng
-      playerInstance.on('qualitychange', (event) => {
-        const currentTime = playerInstance.currentTime;
-        setCurrentTime(currentTime);
-        
-        // Tự động tiếp tục phát từ vị trí cũ
-        setTimeout(() => {
-          if (playerInstance && currentTime > 0) {
-            playerInstance.currentTime = currentTime;
-            playerInstance.play();
-          }
-        }, 100);
-      });
-    }
-
-    const instances = [];
-    if (window.SlimSelect) {
-      if (document.querySelector('#filter__season')) {
-        const seasonSelect = new window.SlimSelect({
-          select: '#filter__season',
-          settings: { showSearch: false },
-          events: {
-            afterChange: (newVal) => setSelectedSeason(parseInt(newVal[0]?.value || 0, 10)),
-          },
-        });
-        instances.push(seasonSelect);
-      }
-
-      if (document.querySelector('#filter__series')) {
-        const seriesSelect = new window.SlimSelect({
-          select: '#filter__series',
-          settings: { showSearch: false },
-          events: {
-            afterChange: (newVal) => setSelectedEpisode(parseInt(newVal[0]?.value || 0, 10)),
-          },
-        });
-        instances.push(seriesSelect);
-      }
-
-      if (document.querySelector('#filter__sync')) {
-        const syncSelect = new window.SlimSelect({
-          select: '#filter__sync',
-          settings: { showSearch: false },
-        });
-        instances.push(syncSelect);
-      }
-
-      setSlimSelectInstances(instances);
-    } else {
-      console.warn('SlimSelect is not loaded');
-    }
-
-    return () => {
-      if (playerInstance) playerInstance.destroy();
-      instances.forEach(instance => {
-        if (instance && typeof instance.destroy === 'function') {
-          try {
-            instance.destroy();
-          } catch (e) {
-            console.warn('Failed to destroy SlimSelect instance:', e);
-          }
-        }
-      });
-    };
-  }, [selectedQuality]);
-
-  const handleTabChange = (tabId) => {
-    setActiveTab(tabId);
-  };
-
   const getVideoUrl = (quality = selectedQuality) => {
     if (!currentMovie) return '';
-    
+
     let baseCid = '';
-    
+
     if (currentMovie.category === 'Movie') {
       baseCid = currentMovie.video_source?.cid;
     } else if (currentMovie.category === 'TVSeries' && currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
       const episode = currentMovie.seasons[selectedSeason].episodes[selectedEpisode];
       baseCid = episode.video_source?.cid;
     }
-    
+
     if (!baseCid) return '';
-    
-    // Nếu chọn auto hoặc không có chất lượng cụ thể, dùng URL gốc
-    if (quality === 'auto') {
-      return `http://127.0.0.1:8080/ipfs/${baseCid}`;
+
+    return `http://127.0.0.1:8080/ipfs/${baseCid}`;
+  };
+
+  const videoUrl = getVideoUrl();
+  useEffect(() => {
+  let playerInstance = null;
+  if (window.Plyr && playerRef.current) {
+    playerInstance = new window.Plyr(playerRef.current, {
+      controls: [
+        'play-large',
+        'play',
+        'progress',
+        'current-time',
+        'duration',
+        'mute',
+        'volume',
+        'settings',
+        'pip',
+        'airplay',
+        'fullscreen'
+      ],
+      settings: ['quality', 'speed', 'loop'],
+      clickToPlay: true,
+      quality: {
+        default: 1080,
+        options: [2160, 1440, 1080, 720, 480, 360],
+        forced: true,
+        onChange: (quality) => {
+          setCurrentQuality(quality);
+        }
+      },
+      i18n: {
+        qualityLabel: {
+          2160: '4K',
+          1440: '2K',
+          1080: 'HD',
+          720: 'HD',
+          480: 'SD',
+          360: 'SD'
+        }
+      }
+    });
+
+    // Move event listeners here
+    playerInstance.on('play', () => {
+      console.log('Video is playing');
+    });
+
+    playerInstance.on('pause', () => {
+      console.log('Video is paused');
+    });
+
+    if (videoUrl) {
+      playerInstance.source = {
+        type: 'video',
+        sources: [
+          {
+            src: videoUrl,
+            type: 'video/mp4',
+            size: 1080
+          },
+          {
+            src: videoUrl,
+            type: 'video/mp4',
+            size: 720
+          },
+          {
+            src: videoUrl,
+            type: 'video/mp4',
+            size: 480
+          },
+          {
+            src: videoUrl,
+            type: 'video/mp4',
+            size: 360
+          }
+        ]
+      };
     }
-    
-    // Giả sử các file chất lượng khác nhau được lưu với suffix _360p, _480p, etc.
-    // Bạn có thể điều chỉnh logic này tùy theo cách bạn lưu trữ video
-    return `http://127.0.0.1:8080/ipfs/${baseCid}?quality=${quality}`;
+  }
+
+
+  return () => {
+    if (playerInstance) {
+      playerInstance.destroy();
+    }
+  };
+}, [videoUrl]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
   };
 
   const getRelatedMovies = () => {
@@ -259,8 +237,6 @@ function DetailsPage() {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!currentMovie) return <div>Movie not found</div>;
-
-  const videoUrl = getVideoUrl();
 
   return (
     <>
@@ -300,7 +276,7 @@ function DetailsPage() {
                       <ul className="item__meta">
                         <li><span>Director:</span> <Link to="/actor">{currentMovie.director || 'Unknown'}</Link></li>
                         <li>
-                          <span>Cast:</span> 
+                          <span>Cast:</span>
                           {currentMovie.actors?.map((actor, index) => (
                             <React.Fragment key={index}>
                               <Link to="/actor">{actor}</Link>
@@ -337,30 +313,31 @@ function DetailsPage() {
             <div className="col-12 col-xl-6">
               <div className="section__player">
                 {videoUrl ? (
-                  <video key={videoUrl} ref={playerRef} controls crossorigin playsinline poster={currentMovie.cover_image_url} id="player">
-                    <source src={videoUrl} type="video/mp4" size="360" />
-                    <source src={videoUrl} type="video/mp4" size="480" />
-                    <source src={videoUrl} type="video/mp4" size="720" />
-                    <source src={videoUrl} type="video/mp4" size="1080" />
-                    {currentMovie.subtitles && currentMovie.subtitles.map((sub, index) => (
-                      <track key={index} kind="subtitles" srcLang={sub.lang} label={sub.label} src={sub.url} />
+                  <video
+                    key={videoUrl}
+                    ref={playerRef}
+                    controls
+                    crossOrigin="anonymous"
+                    playsInline
+                    poster={currentMovie.cover_image_url}
+                    id="player"
+                    className="plyr-video"
+                  >
+                    <source src={videoUrl} size="1080" type="video/mp4" />
+                    <source src={videoUrl} size="720" type="video/mp4" />
+                    <source src={videoUrl} size="480" type="video/mp4" />
+                    <source src={videoUrl} size="360" type="video/mp4" />
+                    {currentMovie.subtitles?.map((sub, index) => (
+                      <track
+                        key={index}
+                        kind="subtitles"
+                        srcLang={sub.lang}
+                        label={sub.label}
+                        src={sub.url}
+                      />
                     ))}
                   </video>
-                ) : (
-                  <video ref={playerRef} controls crossorigin playsinline poster="../../cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.jpg" id="player">
-                    {/* Video files */}
-                    <source src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-576p.mp4" type="video/mp4" size="576" />
-                    <source src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-720p.mp4" type="video/mp4" size="720" />
-                    <source src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-1080p.mp4" type="video/mp4" size="1080" />
-
-                    {/* Caption files */}
-                    <track kind="captions" label="English" srcLang="en" src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.en.vtt" default />
-                    <track kind="captions" label="Français" srcLang="fr" src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.fr.vtt" />
-
-                    {/* Fallback for browsers that don't support the <video> element */}
-                    <a href="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-576p.mp4" download>Download</a>
-                  </video>
-                )}
+                ) : null}
               </div>
 
               {currentMovie.category === 'TVSeries' && currentMovie.seasons && (
@@ -409,8 +386,8 @@ function DetailsPage() {
                 {/* content tabs nav */}
                 <ul className="nav nav-tabs content__tabs" id="content__tabs" role="tablist">
                   <li className="nav-item" role="presentation">
-                    <button 
-                      className={activeTab === 'tab-1' ? 'active' : ''} 
+                    <button
+                      className={activeTab === 'tab-1' ? 'active' : ''}
                       onClick={() => handleTabChange('tab-1')}
                     >
                       Comments
@@ -418,8 +395,8 @@ function DetailsPage() {
                   </li>
 
                   <li className="nav-item" role="presentation">
-                    <button 
-                      className={activeTab === 'tab-2' ? 'active' : ''} 
+                    <button
+                      className={activeTab === 'tab-2' ? 'active' : ''}
                       onClick={() => handleTabChange('tab-2')}
                     >
                       Reviews
@@ -427,15 +404,14 @@ function DetailsPage() {
                   </li>
 
                   <li className="nav-item" role="presentation">
-                    <button 
-                      className={activeTab === 'tab-3' ? 'active' : ''} 
+                    <button
+                      className={activeTab === 'tab-3' ? 'active' : ''}
                       onClick={() => handleTabChange('tab-3')}
                     >
                       Photos
                     </button>
                   </li>
                 </ul>
-                {/* end content tabs nav */}
               </div>
             </div>
           </div>
@@ -454,53 +430,59 @@ function DetailsPage() {
                         <div className="comments">
                           <ul className="comments__list">
                             {commentsData.map(comment => (
-                              <li key={comment.id} className={`comments__item ${comment.isQuote ? 'comments__item--quote' : ''}`}>
-                                <div className="comments__autor">
-                                  <img className="comments__avatar" src={comment.avatar} alt="" />
-                                  <span className="comments__name">{comment.name}</span>
-                                  <span className="comments__time">{comment.time}</span>
-                                </div>
-                                <p className="comments__text">
-                                  {comment.isQuote ? (
-                                    <>
-                                      <span>{comment.quoteText}</span>
-                                      {comment.text}
-                                    </>
-                                  ) : (
-                                    comment.text
-                                  )}
-                                </p>
-                                <div className="comments__actions">
-                                  <div className="comments__rate">
-                                    <button type="button"><i className="ti ti-thumb-up"></i>{comment.likes}</button>
-                                    <button type="button">{comment.dislikes}<i className="ti ti-thumb-down"></i></button>
+                              <React.Fragment key={comment.id}>
+                                <li className={`comments__item ${comment.isQuote ? 'comments__item--quote' : ''}`}>
+                                  <div className="comments__autor">
+                                    <img className="comments__avatar" src={comment.avatar} alt="" />
+                                    <span className="comments__name">{comment.name}</span>
+                                    <span className="comments__time">{comment.time}</span>
                                   </div>
-                                  <button type="button"><i className="ti ti-arrow-forward-up"></i>Reply</button>
-                                  <button type="button"><i className="ti ti-quote"></i>Quote</button>
-                                </div>
+                                  <p className="comments__text">
+                                    {comment.isQuote ? (
+                                      <>
+                                        <span>{comment.quoteText}</span>
+                                        {comment.text}
+                                      </>
+                                    ) : (
+                                      comment.text
+                                    )}
+                                  </p>
+                                  <div className="comments__actions">
+                                    <div className="comments__rate">
+                                      <button type="button"><i className="ti ti-thumb-up"></i>{comment.likes}</button>
+                                      <button type="button">{comment.dislikes}<i className="ti ti-thumb-down"></i></button>
+                                    </div>
+                                    <button type="button"><i className="ti ti-arrow-forward-up"></i>Reply</button>
+                                    <button type="button"><i className="ti ti-quote"></i>Quote</button>
+                                  </div>
+                                </li>
 
-                                {comment.replies && comment.replies.map(reply => (
-                                  <li key={reply.id} className="comments__item comments__item--answer">
-                                    <div className="comments__autor">
-                                      <img className="comments__avatar" src={reply.avatar} alt="" />
-                                      <span className="comments__name">{reply.name}</span>
-                                      <span className="comments__time">{reply.time}</span>
-                                    </div>
-                                    <p className="comments__text">{reply.text}</p>
-                                    <div className="comments__actions">
-                                      <div className="comments__rate">
-                                        <button type="button"><i className="ti ti-thumb-up"></i>{reply.likes}</button>
-                                        <button type="button">{reply.dislikes}<i className="ti ti-thumb-down"></i></button>
-                                      </div>
-                                      <button type="button"><i className="ti ti-arrow-forward-up"></i>Reply</button>
-                                      <button type="button"><i className="ti ti-quote"></i>Quote</button>
-                                    </div>
-                                  </li>
-                                ))}
-                              </li>
+                                {/* Render replies in a separate list */}
+                                {comment.replies && comment.replies.length > 0 && (
+                                  <ul className="comments__replies">
+                                    {comment.replies.map(reply => (
+                                      <li key={reply.id} className="comments__item comments__item--answer">
+                                        <div className="comments__autor">
+                                          <img className="comments__avatar" src={reply.avatar} alt="" />
+                                          <span className="comments__name">{reply.name}</span>
+                                          <span className="comments__time">{reply.time}</span>
+                                        </div>
+                                        <p className="comments__text">{reply.text}</p>
+                                        <div className="comments__actions">
+                                          <div className="comments__rate">
+                                            <button type="button"><i className="ti ti-thumb-up"></i>{reply.likes}</button>
+                                            <button type="button">{reply.dislikes}<i className="ti ti-thumb-down"></i></button>
+                                          </div>
+                                          <button type="button"><i className="ti ti-arrow-forward-up"></i>Reply</button>
+                                          <button type="button"><i className="ti ti-quote"></i>Quote</button>
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </React.Fragment>
                             ))}
                           </ul>
-
                           {/* paginator mobile */}
                           <div className="paginator-mob paginator-mob--comments">
                             <span className="paginator-mob__pages">5 of 628</span>

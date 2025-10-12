@@ -39,22 +39,56 @@ export const updateItemStatus = createAsyncThunk(
 );
 
 /**
- * Add Movie
+ * Helper function to upload video sources to IPFS
+ */
+const uploadVideoSources = async (videoSources) => {
+    const sources = {};
+    
+    // Upload 1080p
+    if (videoSources['1080p']) {
+        const result = await ipfs.add(videoSources['1080p']);
+        sources['1080p'] = result.cid.toString();
+    }
+    
+    // Upload 720p
+    if (videoSources['720p']) {
+        const result = await ipfs.add(videoSources['720p']);
+        sources['720p'] = result.cid.toString();
+    }
+    
+    // Upload 480p
+    if (videoSources['480p']) {
+        const result = await ipfs.add(videoSources['480p']);
+        sources['480p'] = result.cid.toString();
+    }
+    
+    // Upload HLS
+    if (videoSources['hls']) {
+        const result = await ipfs.add(videoSources['hls']);
+        sources['hls'] = result.cid.toString();
+    }
+    
+    return sources;
+};
+
+/**
+ * Add Movie with multiple quality support
  */
 export const addNewMovie = createAsyncThunk('items/addNewMovie', async (formData, { rejectWithValue }) => {
     try {
+        // Upload cover image
         let coverImageCid = null;
         if (formData.coverImage) {
             const result = await ipfs.add(formData.coverImage);
             coverImageCid = result.cid;
         }
 
-        let videoCid = null;
-        if (formData.video) {
-            const result = await ipfs.add(formData.video);
-            videoCid = result.cid;
-        } else {
-            return rejectWithValue('Video file is required for a movie.');
+        // Upload video sources (multiple qualities)
+        const videoSources = await uploadVideoSources(formData.videoSources);
+        
+        // Check if at least one video source is uploaded
+        if (Object.keys(videoSources).length === 0) {
+            return rejectWithValue('At least one video quality is required for a movie.');
         }
 
         const moviePayload = {
@@ -66,12 +100,16 @@ export const addNewMovie = createAsyncThunk('items/addNewMovie', async (formData
             running_time: parseInt(formData.runningTime, 10) || 0,
             age_rating: formData.age,
             quality: formData.quality,
-            genres: formData.genres,
-            director: formData.directors.join(', '),
-            actors: formData.actors,
-            country: formData.country.join(', '),
-            video_source: { cid: videoCid.toString() },
-            status: 'Visible'
+            genres: formData.genres, // Array
+            director: formData.director, // String for Movie
+            actors: formData.actors, // Array
+            country: formData.country, // String for Movie
+            video_source: {
+                type: 'ipfs',
+                sources: videoSources,
+                subtitles: []
+            },
+            status: formData.status || 'Visible'
         };
 
         const response = await axios.post('/movies', moviePayload);
@@ -88,31 +126,44 @@ export const addNewMovie = createAsyncThunk('items/addNewMovie', async (formData
     }
 });
 
+/**
+ * Add TV Series with multiple quality support
+ */
 export const addNewTVSeries = createAsyncThunk('items/addNewTVSeries', async (formData, { rejectWithValue }) => {
     try {
+        // Upload cover image
         let coverImageCid = null;
         if (formData.coverImage) {
             const result = await ipfs.add(formData.coverImage);
             coverImageCid = result.cid;
         }
 
+        // Process seasons and episodes
         const seasonsPayload = await Promise.all(
             formData.seasons.map(async (season, seasonIndex) => {
                 const episodesPayload = await Promise.all(
                     season.episodes.map(async (episode, episodeIndex) => {
-                        if (!episode.video) {
-                            throw new Error(`Video for Season ${seasonIndex + 1}, Episode ${episodeIndex + 1} is missing.`);
+                        // Upload video sources for each episode
+                        const videoSources = await uploadVideoSources(episode.videoSources);
+                        
+                        // Check if at least one video source is uploaded
+                        if (Object.keys(videoSources).length === 0) {
+                            throw new Error(`At least one video quality is required for Season ${seasonIndex + 1}, Episode ${episodeIndex + 1}.`);
                         }
-                        const result = await ipfs.add(episode.video);
+                        
                         return {
                             episode_number: episodeIndex + 1,
                             title: episode.title,
-                            
                             air_date: episode.airDate,
-                            video_source: { cid: result.cid.toString() }
+                            video_source: {
+                                type: 'ipfs',
+                                sources: videoSources,
+                                subtitles: []
+                            }
                         };
                     })
                 );
+                
                 return {
                     season_number: seasonIndex + 1,
                     title: season.title,
@@ -126,17 +177,15 @@ export const addNewTVSeries = createAsyncThunk('items/addNewTVSeries', async (fo
             title: formData.title,
             description: formData.description,
             cover_image_url: coverImageCid ? `http://127.0.0.1:8080/ipfs/${coverImageCid.toString()}` : '',
-            background_image_url: formData.backgroundLink, 
+            background_image_url: formData.backgroundLink,
             release_year: formData.release_year,
-            running_time: parseInt(formData.runningTime, 10) || 0, // Add this
-            age_rating: formData.age, // Add this
-            quality: formData.quality, // Add this
-            genres: formData.genres,
-            director: formData.directors.join(', '), // Add this
-            actors: formData.actors,
-            country: formData.country.join(', '), // Add this
+            running_time: parseInt(formData.runningTime, 10) || 0,
+            age_rating: formData.age,
+            genres: formData.genres, // Array
+            directors: formData.directors, // Array for TVSeries
+            actors: formData.actors, // Array
             seasons: seasonsPayload,
-            status: 'Visible'
+            status: formData.status || 'Visible'
         };
 
         const response = await axios.post('/tvseries', tvSeriesPayload);
@@ -170,7 +219,7 @@ export const deleteItem = createAsyncThunk(
     async (id, { rejectWithValue }) => {
         try {
             await catalogService.deleteItem(id);
-            return id; // Trả về id để remove khỏi state
+            return id;
         } catch (error) {
             if (error.response && error.response.data) {
                 return rejectWithValue(error.response.data.message);
@@ -217,19 +266,18 @@ const itemsSlice = createSlice({
                 }
             })
             .addCase(deleteItem.pending, (state) => {
-    state.status = 'loading';
-})
-.addCase(deleteItem.fulfilled, (state, action) => {
-    state.status = 'succeeded';
-    // Remove item khỏi data array
-    state.data = state.data.filter(item => 
-        (item.id || item._id) !== action.payload
-    );
-})
-.addCase(deleteItem.rejected, (state, action) => {
-    state.status = 'failed';
-    state.error = action.payload;
-})
+                state.status = 'loading';
+            })
+            .addCase(deleteItem.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.data = state.data.filter(item => 
+                    (item.id || item._id) !== action.payload
+                );
+            })
+            .addCase(deleteItem.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.payload;
+            })
             .addMatcher(
                 (action) => action.type === addNewMovie.pending.type || action.type === addNewTVSeries.pending.type || action.type === updateItem.pending.type,
                 (state) => {
@@ -250,7 +298,6 @@ const itemsSlice = createSlice({
                     state.error = action.payload;
                 }
             )
-            
     }
 });
 

@@ -3,6 +3,22 @@ import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
 
+const videoSourceSchema = new Schema({
+  type: { type: String, default: 'ipfs' },
+  sources: {
+    '1080p': String,
+    '720p': String,
+    '480p': String,
+    'hls': String, // master.m3u8 CID hoặc đường dẫn
+  },
+  subtitles: [
+    {
+      language: String,
+      cid: String,
+    },
+  ],
+});
+
 const movieSchema = new Schema({
     title: {
         type: String,
@@ -49,20 +65,7 @@ const movieSchema = new Schema({
         type: Number,
         default: 0,
     },
-    video_source: {
-        type: {
-            type: String,
-            default: 'ipfs'
-        },
-        cid: {
-            type: String,
-            required: true,
-        },
-        subtitles: [{
-            language: String,
-            cid: String,
-        }]
-    },
+    video_source: videoSourceSchema,
     status: {
         type: String,
         enum: ['Visible', 'Hidden'],

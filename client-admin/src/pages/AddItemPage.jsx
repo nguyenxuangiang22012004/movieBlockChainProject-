@@ -20,11 +20,18 @@ const AddItemPage = () => {
     genres: [],
     runningTime: '',
     release_year: '',
-    country: [],
+    country: '',
+    director: '',
     directors: [],
     actors: [],
     itemType: 'movie',
-    video: null,
+    // Video sources cho movie
+    videoSources: {
+      '1080p': null,
+      '720p': null,
+      '480p': null,
+      'hls': null
+    },
     status: 'Visible',
     seasons: [
       {
@@ -35,7 +42,12 @@ const AddItemPage = () => {
           episode_number: 1,
           title: '',
           airDate: '',
-          video: null
+          videoSources: {
+            '1080p': null,
+            '720p': null,
+            '480p': null,
+            'hls': null
+          }
         }]
       }
     ]
@@ -60,18 +72,36 @@ const AddItemPage = () => {
           afterChange: (newVal) => setFormData(prev => ({ ...prev, genres: getMultiValues(newVal) }))
         }
       });
+      
       slimSelects.current.country = new window.SlimSelect({
         select: '#sign__country',
+        settings: { 
+          showSearch: false,
+        },
         events: {
-          afterChange: (newVal) => setFormData(prev => ({ ...prev, country: getMultiValues(newVal) }))
+          afterChange: (newVal) => {
+            if (formData.itemType === 'movie') {
+              setFormData(prev => ({ ...prev, country: newVal[0]?.value || '' }));
+            } else {
+              setFormData(prev => ({ ...prev, country: getMultiValues(newVal) }));
+            }
+          }
         }
       });
+
       slimSelects.current.directors = new window.SlimSelect({
         select: '#sign__director',
         events: {
-          afterChange: (newVal) => setFormData(prev => ({ ...prev, directors: getMultiValues(newVal) }))
+          afterChange: (newVal) => {
+            if (formData.itemType === 'movie') {
+              setFormData(prev => ({ ...prev, director: newVal[0]?.value || '' }));
+            } else {
+              setFormData(prev => ({ ...prev, directors: getMultiValues(newVal) }));
+            }
+          }
         }
       });
+
       slimSelects.current.actors = new window.SlimSelect({
         select: '#sign__actors',
         events: {
@@ -85,6 +115,25 @@ const AddItemPage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (slimSelects.current.country) {
+      if (formData.itemType === 'movie') {
+        slimSelects.current.country.settings.closeOnSelect = true;
+        slimSelects.current.country.setSelected(formData.country ? [formData.country] : []);
+      }
+    }
+
+    if (slimSelects.current.directors) {
+      if (formData.itemType === 'movie') {
+        slimSelects.current.directors.settings.closeOnSelect = true;
+        slimSelects.current.directors.setSelected(formData.director ? [formData.director] : []);
+      } else {
+        slimSelects.current.directors.settings.closeOnSelect = false;
+        slimSelects.current.directors.setSelected(formData.directors || []);
+      }
+    }
+  }, [formData.itemType]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -93,6 +142,40 @@ const AddItemPage = () => {
   const handleFileUpload = (e, fieldName) => {
     const file = e.target.files[0];
     setFormData(prev => ({ ...prev, [fieldName]: file }));
+  };
+
+  // Handle video source upload for movie
+  const handleVideoSourceUpload = (quality, file) => {
+    setFormData(prev => ({
+      ...prev,
+      videoSources: {
+        ...prev.videoSources,
+        [quality]: file
+      }
+    }));
+  };
+
+  // Handle video source upload for episode
+  const handleEpisodeVideoSourceUpload = (seasonIndex, episodeIndex, quality, file) => {
+    const newSeasons = formData.seasons.map((season, sIdx) => {
+      if (sIdx !== seasonIndex) return season;
+      
+      const newEpisodes = season.episodes.map((episode, eIdx) => {
+        if (eIdx !== episodeIndex) return episode;
+        
+        return {
+          ...episode,
+          videoSources: {
+            ...episode.videoSources,
+            [quality]: file
+          }
+        };
+      });
+      
+      return { ...season, episodes: newEpisodes };
+    });
+    
+    setFormData(prev => ({ ...prev, seasons: newSeasons }));
   };
 
   const addSeason = () => {
@@ -108,7 +191,12 @@ const AddItemPage = () => {
             episode_number: 1,
             title: '',
             airDate: '',
-            video: null
+            videoSources: {
+              '1080p': null,
+              '720p': null,
+              '480p': null,
+              'hls': null
+            }
           }]
         }
       ]
@@ -137,7 +225,12 @@ const AddItemPage = () => {
             episode_number: season.episodes.length + 1,
             title: '',
             airDate: '',
-            video: null
+            videoSources: {
+              '1080p': null,
+              '720p': null,
+              '480p': null,
+              'hls': null
+            }
           }
         ]
       };
@@ -164,14 +257,14 @@ const AddItemPage = () => {
   };
 
   const handleSeasonChange = (seasonIndex, field, value) => {
-  const newSeasons = formData.seasons.map((season, index) => {
-    if (index !== seasonIndex) {
-      return season;
-    }
-    return { ...season, [field]: value };
-  });
-  setFormData(prev => ({ ...prev, seasons: newSeasons }));
-};
+    const newSeasons = formData.seasons.map((season, index) => {
+      if (index !== seasonIndex) {
+        return season;
+      }
+      return { ...season, [field]: value };
+    });
+    setFormData(prev => ({ ...prev, seasons: newSeasons }));
+  };
 
   const handleEpisodeChange = (seasonIndex, episodeIndex, field, value) => {
     const newSeasons = formData.seasons.map((season, sIdx) => {
@@ -188,23 +281,6 @@ const AddItemPage = () => {
     });
     setFormData(prev => ({ ...prev, seasons: newSeasons }));
   };
-
-  const handleEpisodeFileChange = (seasonIndex, episodeIndex, file) => {
-    const newSeasons = formData.seasons.map((season, sIdx) => {
-      if (sIdx !== seasonIndex) {
-        return season;
-      }
-      const newEpisodes = season.episodes.map((episode, eIdx) => {
-        if (eIdx !== episodeIndex) {
-          return episode;
-        }
-        return { ...episode, video: file };
-      });
-      return { ...season, episodes: newEpisodes };
-    });
-    setFormData(prev => ({ ...prev, seasons: newSeasons }));
-  };
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -333,8 +409,14 @@ const AddItemPage = () => {
                   </div>
                   <div className="col-12">
                     <div className="sign__group">
-                      <label htmlFor="sign__country" className="sign__label">Country</label>
-                      <select className="sign__selectjs" id="sign__country" multiple>
+                      <label htmlFor="sign__country" className="sign__label">
+                        Country {formData.itemType === 'movie' && '(Single select for Movie)'}
+                      </label>
+                      <select 
+                        className="sign__selectjs" 
+                        id="sign__country" 
+                        multiple={formData.itemType === 'tvSeries'}
+                      >
                         <option value="United States">United States</option>
                         <option value="United Kingdom">United Kingdom</option>
                         <option value="Canada">Canada</option>
@@ -350,11 +432,29 @@ const AddItemPage = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Item Type */}
+              <div className="col-12">
+                <div className="sign__group">
+                  <label className="sign__label">Item type:</label>
+                  <ul className="sign__radio">
+                    <li> <input id="type1" type="radio" name="itemType" value="movie" checked={formData.itemType === 'movie'} onChange={handleInputChange} /> <label htmlFor="type1">Movie</label> </li>
+                    <li> <input id="type2" type="radio" name="itemType" value="tvSeries" checked={formData.itemType === 'tvSeries'} onChange={handleInputChange} /> <label htmlFor="type2">TV Series</label> </li>
+                  </ul>
+                </div>
+              </div>
+
               {/* Directors and Actors */}
               <div className="col-12 col-md-6 col-xl-4">
                 <div className="sign__group">
-                  <label className="sign__label">Directors</label>
-                  <select className="sign__selectjs" id="sign__director" multiple>
+                  <label className="sign__label">
+                    {formData.itemType === 'movie' ? 'Director (Single)' : 'Directors (Multiple)'}
+                  </label>
+                  <select 
+                    className="sign__selectjs" 
+                    id="sign__director" 
+                    multiple={formData.itemType === 'tvSeries'}
+                  >
                     <option value="Matt Jones">Matt Jones</option>
                     <option value="Gene Graham">Gene Graham</option>
                     <option value="Rosa Lee">Rosa Lee</option>
@@ -365,7 +465,7 @@ const AddItemPage = () => {
               </div>
               <div className="col-12 col-md-6 col-xl-8">
                 <div className="sign__group">
-                  <label className="sign__label">Actors</label>
+                  <label className="sign__label">Actors (Multiple)</label>
                   <select className="sign__selectjs" id="sign__actors" multiple>
                     <option value="Matt Jones">Matt Jones</option>
                     <option value="Gene Graham">Gene Graham</option>
@@ -373,17 +473,6 @@ const AddItemPage = () => {
                     <option value="Brian Cranston">Brian Cranston</option>
                     <option value="Tess Harper">Tess Harper</option>
                   </select>
-                </div>
-              </div>
-
-              {/* Item Type */}
-              <div className="col-12">
-                <div className="sign__group">
-                  <label className="sign__label">Item type:</label>
-                  <ul className="sign__radio">
-                    <li> <input id="type1" type="radio" name="itemType" value="movie" checked={formData.itemType === 'movie'} onChange={handleInputChange} /> <label htmlFor="type1">Movie</label> </li>
-                    <li> <input id="type2" type="radio" name="itemType" value="tvSeries" checked={formData.itemType === 'tvSeries'} onChange={handleInputChange} /> <label htmlFor="type2">TV Series</label> </li>
-                  </ul>
                 </div>
               </div>
 
@@ -403,12 +492,82 @@ const AddItemPage = () => {
                 </div>
               </div>
 
-              {/* Movie Upload */}
+              {/* Movie Upload - Multiple Quality Options */}
               {formData.itemType === 'movie' && (
                 <div className="col-12">
-                  <div className="sign__video">
-                    <label id="movie1" htmlFor="sign__video-upload"> Upload video {formData.video && ` - ${formData.video.name}`} </label>
-                    <input data-name="#movie1" id="sign__video-upload" name="video" className="sign__video-upload" type="file" accept="video/mp4,video/x-m4v,video/*" onChange={(e) => handleFileUpload(e, 'video')} />
+                  <div className="sign__group">
+                    <label className="sign__label">Upload Video (Multiple Qualities)</label>
+                    <p style={{ fontSize: '14px', color: '#999', marginBottom: '15px' }}>
+                      Upload videos in different qualities. Users will be able to choose their preferred quality.
+                    </p>
+                  </div>
+                  
+                  {/* 1080p */}
+                  <div className="col-12 col-md-6 col-lg-3">
+                    <div className="sign__video">
+                      <label id="movie-1080p" htmlFor="sign__video-upload-1080p">
+                        1080p {formData.videoSources['1080p'] && ` - ${formData.videoSources['1080p'].name}`}
+                      </label>
+                      <input 
+                        data-name="#movie-1080p" 
+                        id="sign__video-upload-1080p" 
+                        className="sign__video-upload" 
+                        type="file" 
+                        accept="video/mp4,video/x-m4v,video/*" 
+                        onChange={(e) => handleVideoSourceUpload('1080p', e.target.files[0])} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* 720p */}
+                  <div className="col-12 col-md-6 col-lg-3">
+                    <div className="sign__video">
+                      <label id="movie-720p" htmlFor="sign__video-upload-720p">
+                        720p {formData.videoSources['720p'] && ` - ${formData.videoSources['720p'].name}`}
+                      </label>
+                      <input 
+                        data-name="#movie-720p" 
+                        id="sign__video-upload-720p" 
+                        className="sign__video-upload" 
+                        type="file" 
+                        accept="video/mp4,video/x-m4v,video/*" 
+                        onChange={(e) => handleVideoSourceUpload('720p', e.target.files[0])} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* 480p */}
+                  <div className="col-12 col-md-6 col-lg-3">
+                    <div className="sign__video">
+                      <label id="movie-480p" htmlFor="sign__video-upload-480p">
+                        480p {formData.videoSources['480p'] && ` - ${formData.videoSources['480p'].name}`}
+                      </label>
+                      <input 
+                        data-name="#movie-480p" 
+                        id="sign__video-upload-480p" 
+                        className="sign__video-upload" 
+                        type="file" 
+                        accept="video/mp4,video/x-m4v,video/*" 
+                        onChange={(e) => handleVideoSourceUpload('480p', e.target.files[0])} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* HLS */}
+                  <div className="col-12 col-md-6 col-lg-3">
+                    <div className="sign__video">
+                      <label id="movie-hls" htmlFor="sign__video-upload-hls">
+                        HLS (.m3u8) {formData.videoSources['hls'] && ` - ${formData.videoSources['hls'].name}`}
+                      </label>
+                      <input 
+                        data-name="#movie-hls" 
+                        id="sign__video-upload-hls" 
+                        className="sign__video-upload" 
+                        type="file" 
+                        accept=".m3u8,application/x-mpegURL" 
+                        onChange={(e) => handleVideoSourceUpload('hls', e.target.files[0])} 
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -475,17 +634,84 @@ const AddItemPage = () => {
                                 />
                               </div>
                             </div>
-                            <div className="col-12 col-sm-8 col-md-9 col-xl-10">
+
+                            {/* Episode Videos - Multiple Qualities */}
+                            <div className="col-12">
+                              <label className="sign__label" style={{ fontSize: '14px', marginBottom: '10px' }}>
+                                Upload Episode Videos (Multiple Qualities)
+                              </label>
+                            </div>
+
+                            {/* 1080p */}
+                            <div className="col-12 col-sm-6 col-md-3">
                               <div className="sign__video">
-                                <label id={`s${seasonIndex}e${episodeIndex}`} htmlFor={`sign__video-upload-${seasonIndex}-${episodeIndex}`}>
-                                  Upload episode {episode.episode_number}
-                                  {episode.video && ` - ${episode.video.name}`}
+                                <label id={`s${seasonIndex}e${episodeIndex}-1080p`} htmlFor={`sign__video-upload-${seasonIndex}-${episodeIndex}-1080p`}>
+                                  1080p
+                                  {episode.videoSources['1080p'] && ` ✓`}
                                 </label>
-                                <input data-name={`#s${seasonIndex}e${episodeIndex}`} id={`sign__video-upload-${seasonIndex}-${episodeIndex}`} type="file" accept="video/mp4,video/x-m4v,video/*" onChange={(e) => handleEpisodeFileChange(seasonIndex, episodeIndex, e.target.files[0])} />
+                                <input 
+                                  data-name={`#s${seasonIndex}e${episodeIndex}-1080p`} 
+                                  id={`sign__video-upload-${seasonIndex}-${episodeIndex}-1080p`} 
+                                  type="file" 
+                                  accept="video/mp4,video/x-m4v,video/*" 
+                                  onChange={(e) => handleEpisodeVideoSourceUpload(seasonIndex, episodeIndex, '1080p', e.target.files[0])} 
+                                />
                               </div>
                             </div>
+
+                            {/* 720p */}
+                            <div className="col-12 col-sm-6 col-md-3">
+                              <div className="sign__video">
+                                <label id={`s${seasonIndex}e${episodeIndex}-720p`} htmlFor={`sign__video-upload-${seasonIndex}-${episodeIndex}-720p`}>
+                                  720p
+                                  {episode.videoSources['720p'] && ` ✓`}
+                                </label>
+                                <input 
+                                  data-name={`#s${seasonIndex}e${episodeIndex}-720p`} 
+                                  id={`sign__video-upload-${seasonIndex}-${episodeIndex}-720p`} 
+                                  type="file" 
+                                  accept="video/mp4,video/x-m4v,video/*" 
+                                  onChange={(e) => handleEpisodeVideoSourceUpload(seasonIndex, episodeIndex, '720p', e.target.files[0])} 
+                                />
+                              </div>
+                            </div>
+
+                            {/* 480p */}
+                            <div className="col-12 col-sm-6 col-md-3">
+                              <div className="sign__video">
+                                <label id={`s${seasonIndex}e${episodeIndex}-480p`} htmlFor={`sign__video-upload-${seasonIndex}-${episodeIndex}-480p`}>
+                                  480p
+                                  {episode.videoSources['480p'] && ` ✓`}
+                                </label>
+                                <input 
+                                  data-name={`#s${seasonIndex}e${episodeIndex}-480p`} 
+                                  id={`sign__video-upload-${seasonIndex}-${episodeIndex}-480p`} 
+                                  type="file" 
+                                  accept="video/mp4,video/x-m4v,video/*" 
+                                  onChange={(e) => handleEpisodeVideoSourceUpload(seasonIndex, episodeIndex, '480p', e.target.files[0])} 
+                                />
+                              </div>
+                            </div>
+
+                            {/* HLS */}
+                            <div className="col-12 col-sm-6 col-md-3">
+                              <div className="sign__video">
+                                <label id={`s${seasonIndex}e${episodeIndex}-hls`} htmlFor={`sign__video-upload-${seasonIndex}-${episodeIndex}-hls`}>
+                                  HLS
+                                  {episode.videoSources['hls'] && ` ✓`}
+                                </label>
+                                <input 
+                                  data-name={`#s${seasonIndex}e${episodeIndex}-hls`} 
+                                  id={`sign__video-upload-${seasonIndex}-${episodeIndex}-hls`} 
+                                  type="file" 
+                                  accept=".m3u8,application/x-mpegURL" 
+                                  onChange={(e) => handleEpisodeVideoSourceUpload(seasonIndex, episodeIndex, 'hls', e.target.files[0])} 
+                                />
+                              </div>
+                            </div>
+
                             {episodeIndex === season.episodes.length - 1 && (
-                              <div className="col-12 col-sm-4 col-md-3 col-xl-2">
+                              <div className="col-12 col-sm-12 col-md-12" style={{ marginTop: '15px' }}>
                                 <button type="button" className="sign__btn sign__btn--add" onClick={() => addEpisode(seasonIndex)}>
                                   <span>add episode</span>
                                 </button>

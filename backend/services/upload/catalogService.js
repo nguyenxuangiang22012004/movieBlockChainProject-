@@ -9,18 +9,18 @@ export const getCatalog = async () => {
     const formattedMovies = movies.map((m) => ({
       id: m._id,
       title: m.title,
-      description : m.description,
-      cover_image_url : m.cover_image_url,
-      background_image_url : m.background_image_url,
-      release_year : m.release_year,
-      running_time : m.running_time,
-      age_rating : m.age_rating,
-      quality : m.quality,
-      genres : m.genres,
-      actors : m.actors,
-      director : m.director,
-      country : m.country,
-      video_source : m.video_source,
+      description: m.description,
+      cover_image_url: m.cover_image_url,
+      background_image_url: m.background_image_url,
+      release_year: m.release_year,
+      running_time: m.running_time,
+      age_rating: m.age_rating,
+      quality: m.quality,
+      genres: m.genres, // Array of strings
+      actors: m.actors, // Array of strings
+      director: m.director, // Single string
+      country: m.country,
+      video_source: m.video_source,
       imdb_rating: m.imdb_rating || 0,
       category: "Movie",
       views: m.views || 0,
@@ -31,16 +31,17 @@ export const getCatalog = async () => {
     const formattedSeries = tvSeries.map((s) => ({
       id: s._id,
       title: s.title,
-      description : s.description,
-      background_image_url : s.background_image_url,
-      cover_image_url : s.cover_image_url,
+      description: s.description,
+      background_image_url: s.background_image_url,
+      cover_image_url: s.cover_image_url,
       release_year: s.release_year,
-      running_time : s.running_time,
-      genres : s.genres,
-      actors : s.actors,
-      seasons : s.seasons,
-      age_rating : s.age_rating,
-      rating: 0, 
+      running_time: s.running_time,
+      genres: s.genres, // Array of strings
+      directors: s.directors, // Array of strings (khác với Movie)
+      actors: s.actors, // Array of strings
+      seasons: s.seasons,
+      age_rating: s.age_rating,
+      rating: 0,
       category: "TVSeries",
       views: 0,
       status: s.status,
@@ -52,6 +53,7 @@ export const getCatalog = async () => {
     return { success: false, message: error.message };
   }
 };
+
 export const updateStatusCatalog = async (type, id, status) => {
   let Model;
 
@@ -66,7 +68,7 @@ export const updateStatusCatalog = async (type, id, status) => {
   const updatedItem = await Model.findByIdAndUpdate(
     id,
     { status },
-    { new: true, runValidators: false } 
+    { new: true, runValidators: false }
   );
 
   if (!updatedItem) {
