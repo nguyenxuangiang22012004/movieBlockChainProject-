@@ -133,7 +133,6 @@ function DetailsPage() {
     let baseCid = '';
 
     if (currentMovie.category === 'Movie') {
-      // Lấy CID dựa trên chất lượng
       baseCid = currentMovie.video_source?.sources?.[quality] || currentMovie.video_source?.sources?.['1080p'];
     } else if (currentMovie.category === 'TVSeries' && currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
       const episode = currentMovie.seasons[selectedSeason].episodes[selectedEpisode];
@@ -141,7 +140,7 @@ function DetailsPage() {
     }
 
     if (!baseCid) {
-      console.error('Không tìm thấy CID hợp lệ cho chất lượng:', quality);
+      console.error('Không tìm thấy CID hợp lệ cho chất lượng:', quality, 'Category:', currentMovie.category);
       return '';
     }
 
@@ -153,55 +152,67 @@ function DetailsPage() {
   const videoUrl = getVideoUrl();
   useEffect(() => {
     let playerInstance = null;
-    if (window.Plyr && playerRef.current && !isLoadingMovie && currentMovie?.video_source?.sources) {
-      const sources = currentMovie.video_source.sources;
-      const availableQualities = Object.keys(sources).map((key) => ({
-        src: `http://127.0.0.1:8080/ipfs/${sources[key]}`,
-        type: 'video/mp4',
-        size: parseInt(key.replace('p', '')),
-      }));
+    if (window.Plyr && playerRef.current && !isLoadingMovie) {
+      let videoSource = null;
 
-      playerInstance = new window.Plyr(playerRef.current, {
-        controls: [
-          'play-large',
-          'play',
-          'progress',
-          'current-time',
-          'duration',
-          'mute',
-          'volume',
-          'settings',
-          'pip',
-          'airplay',
-          'fullscreen',
-        ],
-        settings: ['quality', 'speed', 'loop'],
-        clickToPlay: true,
-        quality: {
-          default: 1080,
-          options: [1080, 720, 480],
-          forced: true,
-          onChange: (quality) => {
-            setCurrentQuality(`${quality}p`);
-            setSelectedQuality(`${quality}p`);
+      if (currentMovie.category === 'Movie') {
+        videoSource = currentMovie.video_source;
+      } else if (currentMovie.category === 'TVSeries' && currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
+        videoSource = currentMovie.seasons[selectedSeason].episodes[selectedEpisode].video_source;
+      }
+
+      if (videoSource?.sources) {
+        const sources = videoSource.sources;
+        const availableQualities = Object.keys(sources).map((key) => ({
+          src: `http://127.0.0.1:8080/ipfs/${sources[key]}`,
+          type: 'video/mp4',
+          size: parseInt(key.replace('p', '')),
+        }));
+
+        playerInstance = new window.Plyr(playerRef.current, {
+          controls: [
+            'play-large',
+            'play',
+            'progress',
+            'current-time',
+            'duration',
+            'mute',
+            'volume',
+            'settings',
+            'pip',
+            'airplay',
+            'fullscreen',
+          ],
+          settings: ['quality', 'speed', 'loop'],
+          clickToPlay: true,
+          quality: {
+            default: 1080,
+            options: [1080, 720, 480],
+            forced: true,
+            onChange: (quality) => {
+              setCurrentQuality(`${quality}p`);
+              setSelectedQuality(`${quality}p`);
+            },
           },
-        },
-        i18n: {
-          qualityLabel: {
-            1080: '1080',
-            720: '720',
-            480: '480',
+          i18n: {
+            qualityLabel: {
+              1080: '1080',
+              720: '720',
+              480: '480',
+            },
           },
-        },
-      });
+        });
 
-      playerInstance.source = {
-        type: 'video',
-        sources: availableQualities,
-      };
+        playerInstance.source = {
+          type: 'video',
+          sources: availableQualities,
+        };
 
-      playerInstance.on('play', () => console.log('Video đang phát'));
-      playerInstance.on('pause', () => console.log('Video đã tạm dừng'));
+        playerInstance.on('play', () => console.log('Video đang phát'));
+        playerInstance.on('pause', () => console.log('Video đã tạm dừng'));
+      } else {
+        console.log('Plyr không khởi tạo: Không tìm thấy video_source.sources cho phim hiện tại');
+      }
     } else {
       console.log('Plyr không khởi tạo: isLoadingMovie=', isLoadingMovie, 'currentMovie=', currentMovie);
     }
@@ -211,7 +222,7 @@ function DetailsPage() {
         playerInstance.destroy();
       }
     };
-  }, [currentMovie, isLoadingMovie]);
+  }, [currentMovie, isLoadingMovie, selectedSeason, selectedEpisode]);
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
   };
@@ -300,9 +311,9 @@ function DetailsPage() {
               <div className="section__player">
                 {isLoadingMovie ? (
                   <div className="error-message">Loading video...</div>
-                ) : currentMovie?.video_source?.sources ? (
+                ) : currentMovie ? (
                   <video
-                    key={currentMovie._id}
+                    key={`${currentMovie._id}-${selectedSeason}-${selectedEpisode}`} 
                     ref={playerRef}
                     controls
                     crossOrigin="anonymous"
@@ -311,14 +322,26 @@ function DetailsPage() {
                     id="player"
                     className="plyr-video"
                   >
-                    {Object.entries(currentMovie.video_source.sources).map(([quality, cid], index) => (
-                      <source
-                        key={index}
-                        src={`http://127.0.0.1:8080/ipfs/${cid}`}
-                        type="video/mp4"
-                        size={parseInt(quality.replace('p', ''))}
-                      />
-                    ))}
+                    {(() => {
+                      let videoSource = null;
+                      if (currentMovie.category === 'Movie') {
+                        videoSource = currentMovie.video_source;
+                      } else if (currentMovie.category === 'TVSeries' && currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
+                        videoSource = currentMovie.seasons[selectedSeason].episodes[selectedEpisode].video_source;
+                      }
+                      return videoSource?.sources ? (
+                        Object.entries(videoSource.sources).map(([quality, cid], index) => (
+                          <source
+                            key={index}
+                            src={`http://127.0.0.1:8080/ipfs/${cid}`}
+                            type="video/mp4"
+                            size={parseInt(quality.replace('p', ''))}
+                          />
+                        ))
+                      ) : (
+                        <div>Không tìm thấy nguồn video cho episode này.</div>
+                      );
+                    })()}
                     {currentMovie.subtitles?.map((sub, index) => (
                       <track
                         key={index}
