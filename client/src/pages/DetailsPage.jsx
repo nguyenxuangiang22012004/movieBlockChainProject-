@@ -124,107 +124,94 @@ function DetailsPage() {
     }
   }, [dispatch, movieId, currentMovie, movies.length]);
   const getVideoUrl = (quality = selectedQuality) => {
-    if (!currentMovie) return '';
+    if (!currentMovie) {
+      console.error('Không có dữ liệu phim hiện tại');
+      return '';
+    }
 
     let baseCid = '';
 
     if (currentMovie.category === 'Movie') {
-      baseCid = currentMovie.video_source?.cid;
+      // Lấy CID dựa trên chất lượng
+      baseCid = currentMovie.video_source?.sources?.[quality] || currentMovie.video_source?.sources?.['1080p'];
     } else if (currentMovie.category === 'TVSeries' && currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
       const episode = currentMovie.seasons[selectedSeason].episodes[selectedEpisode];
-      baseCid = episode.video_source?.cid;
+      baseCid = episode.video_source?.sources?.[quality] || episode.video_source?.sources?.['1080p'];
     }
 
-    if (!baseCid) return '';
+    if (!baseCid) {
+      console.error('Không tìm thấy CID hợp lệ cho chất lượng:', quality);
+      return '';
+    }
 
-    return `http://127.0.0.1:8080/ipfs/${baseCid}`;
+    const videoUrl = `http://127.0.0.1:8080/ipfs/${baseCid}`;
+    console.log('URL video được tạo:', videoUrl);
+    return videoUrl;
   };
 
   const videoUrl = getVideoUrl();
   useEffect(() => {
-  let playerInstance = null;
-  if (window.Plyr && playerRef.current) {
-    playerInstance = new window.Plyr(playerRef.current, {
-      controls: [
-        'play-large',
-        'play',
-        'progress',
-        'current-time',
-        'duration',
-        'mute',
-        'volume',
-        'settings',
-        'pip',
-        'airplay',
-        'fullscreen'
-      ],
-      settings: ['quality', 'speed', 'loop'],
-      clickToPlay: true,
-      quality: {
-        default: 1080,
-        options: [2160, 1440, 1080, 720, 480, 360],
-        forced: true,
-        onChange: (quality) => {
-          setCurrentQuality(quality);
-        }
-      },
-      i18n: {
-        qualityLabel: {
-          2160: '4K',
-          1440: '2K',
-          1080: 'HD',
-          720: 'HD',
-          480: 'SD',
-          360: 'SD'
-        }
-      }
-    });
+    let playerInstance = null;
+    if (window.Plyr && playerRef.current && currentMovie?.video_source?.sources) {
+      const sources = currentMovie.video_source.sources;
+      const availableQualities = Object.keys(sources).map((key) => ({
+        src: `http://127.0.0.1:8080/ipfs/${sources[key]}`,
+        type: 'video/mp4',
+        size: parseInt(key.replace('p', '')), // Lấy số từ 1080p, 720p, v.v.
+      }));
 
-    // Move event listeners here
-    playerInstance.on('play', () => {
-      console.log('Video is playing');
-    });
+      playerInstance = new window.Plyr(playerRef.current, {
+        controls: [
+          'play-large',
+          'play',
+          'progress',
+          'current-time',
+          'duration',
+          'mute',
+          'volume',
+          'settings',
+          'pip',
+          'airplay',
+          'fullscreen',
+        ],
+        settings: ['quality', 'speed', 'loop'],
+        clickToPlay: true,
+        quality: {
+          default: 1080,
+          options: Object.keys(sources).map((key) => parseInt(key.replace('p', ''))),
+          forced: true,
+          onChange: (quality) => {
+            setCurrentQuality(`${quality}p`);
+            setSelectedQuality(`${quality}p`);
+          },
+        },
+        i18n: {
+          qualityLabel: {
+            2160: '4K',
+            1440: '2K',
+            1080: 'HD',
+            720: 'HD',
+            480: 'SD',
+            360: 'SD',
+          },
+        },
+      });
 
-    playerInstance.on('pause', () => {
-      console.log('Video is paused');
-    });
-
-    if (videoUrl) {
       playerInstance.source = {
         type: 'video',
-        sources: [
-          {
-            src: videoUrl,
-            type: 'video/mp4',
-            size: 1080
-          },
-          {
-            src: videoUrl,
-            type: 'video/mp4',
-            size: 720
-          },
-          {
-            src: videoUrl,
-            type: 'video/mp4',
-            size: 480
-          },
-          {
-            src: videoUrl,
-            type: 'video/mp4',
-            size: 360
-          }
-        ]
+        sources: availableQualities,
       };
-    }
-  }
 
-
-  return () => {
-    if (playerInstance) {
-      playerInstance.destroy();
+      playerInstance.on('play', () => console.log('Video đang phát'));
+      playerInstance.on('pause', () => console.log('Video đã tạm dừng'));
     }
-  };
-}, [videoUrl]);
+
+    return () => {
+      if (playerInstance) {
+        playerInstance.destroy();
+      }
+    };
+  }, [currentMovie]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -312,9 +299,9 @@ function DetailsPage() {
             {/* player */}
             <div className="col-12 col-xl-6">
               <div className="section__player">
-                {videoUrl ? (
+                {currentMovie?.video_source?.sources ? (
                   <video
-                    key={videoUrl}
+                    key={currentMovie._id}
                     ref={playerRef}
                     controls
                     crossOrigin="anonymous"
@@ -323,10 +310,14 @@ function DetailsPage() {
                     id="player"
                     className="plyr-video"
                   >
-                    <source src={videoUrl} size="1080" type="video/mp4" />
-                    <source src={videoUrl} size="720" type="video/mp4" />
-                    <source src={videoUrl} size="480" type="video/mp4" />
-                    <source src={videoUrl} size="360" type="video/mp4" />
+                    {Object.entries(currentMovie.video_source.sources).map(([quality, cid], index) => (
+                      <source
+                        key={index}
+                        src={`http://127.0.0.1:8080/ipfs/${cid}`}
+                        type="video/mp4"
+                        size={parseInt(quality.replace('p', ''))}
+                      />
+                    ))}
                     {currentMovie.subtitles?.map((sub, index) => (
                       <track
                         key={index}
@@ -337,7 +328,9 @@ function DetailsPage() {
                       />
                     ))}
                   </video>
-                ) : null}
+                ) : (
+                  <div className="error-message">Video không khả dụng: Thiếu nguồn video.</div>
+                )}
               </div>
 
               {currentMovie.category === 'TVSeries' && currentMovie.seasons && (
@@ -363,6 +356,20 @@ function DetailsPage() {
                     <option value="1">NewStudio</option>
                     <option value="2">LostFilm</option>
                     <option value="3">HotFlix</option>
+                  </select>
+
+                  <select
+                    className="section__item-select"
+                    name="quality"
+                    id="filter__quality"
+                    value={selectedQuality}
+                    onChange={(e) => setSelectedQuality(e.target.value)}
+                  >
+                    {Object.keys(currentMovie?.video_source?.sources || {}).map((quality) => (
+                      <option key={quality} value={quality}>
+                        {quality}
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}
