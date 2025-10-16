@@ -151,67 +151,64 @@ function DetailsPage() {
 
   const videoUrl = getVideoUrl();
   useEffect(() => {
-    let playerInstance = null;
-    if (window.Plyr && playerRef.current && currentMovie?.video_source?.sources) {
-      const sources = currentMovie.video_source.sources;
-      const availableQualities = Object.keys(sources).map((key) => ({
-        src: `http://127.0.0.1:8080/ipfs/${sources[key]}`,
-        type: 'video/mp4',
-        size: parseInt(key.replace('p', '')), // Lấy số từ 1080p, 720p, v.v.
-      }));
+  let playerInstance = null;
+  if (window.Plyr && playerRef.current && currentMovie?.video_source?.sources) {
+    const sources = currentMovie.video_source.sources;
+    const availableQualities = Object.keys(sources).map((key) => ({
+      src: `http://127.0.0.1:8080/ipfs/${sources[key]}`,
+      type: 'video/mp4',
+      size: parseInt(key.replace('p', '')), // Lấy số từ 1080p, 720p, 480p
+    }));
 
-      playerInstance = new window.Plyr(playerRef.current, {
-        controls: [
-          'play-large',
-          'play',
-          'progress',
-          'current-time',
-          'duration',
-          'mute',
-          'volume',
-          'settings',
-          'pip',
-          'airplay',
-          'fullscreen',
-        ],
-        settings: ['quality', 'speed', 'loop'],
-        clickToPlay: true,
-        quality: {
-          default: 1080,
-          options: Object.keys(sources).map((key) => parseInt(key.replace('p', ''))),
-          forced: true,
-          onChange: (quality) => {
-            setCurrentQuality(`${quality}p`);
-            setSelectedQuality(`${quality}p`);
-          },
+    playerInstance = new window.Plyr(playerRef.current, {
+      controls: [
+        'play-large',
+        'play',
+        'progress',
+        'current-time',
+        'duration',
+        'mute',
+        'volume',
+        'settings',
+        'pip',
+        'airplay',
+        'fullscreen',
+      ],
+      settings: ['quality', 'speed', 'loop'],
+      clickToPlay: true,
+      quality: {
+        default: 1080, 
+        options: [1080, 720, 480], 
+        forced: true,
+        onChange: (quality) => {
+          setCurrentQuality(`${quality}p`); 
+          setSelectedQuality(`${quality}p`); // Cập nhật selectedQuality
         },
-        i18n: {
-          qualityLabel: {
-            2160: '4K',
-            1440: '2K',
-            1080: 'HD',
-            720: 'HD',
-            480: 'SD',
-            360: 'SD',
-          },
+      },
+      i18n: {
+        qualityLabel: {
+          1080: '1080', // Nhãn hiển thị là "1080"
+          720: '720',   // Nhãn hiển thị là "720"
+          480: '480',   // Nhãn hiển thị là "480"
         },
-      });
+      },
+    });
 
-      playerInstance.source = {
-        type: 'video',
-        sources: availableQualities,
-      };
-
-      playerInstance.on('play', () => console.log('Video đang phát'));
-      playerInstance.on('pause', () => console.log('Video đã tạm dừng'));
-    }
-
-    return () => {
-      if (playerInstance) {
-        playerInstance.destroy();
-      }
+    playerInstance.source = {
+      type: 'video',
+      sources: availableQualities,
     };
-  }, [currentMovie]);
+
+    playerInstance.on('play', () => console.log('Video đang phát'));
+    playerInstance.on('pause', () => console.log('Video đã tạm dừng'));
+  }
+
+  return () => {
+    if (playerInstance) {
+      playerInstance.destroy();
+    }
+  };
+}, [currentMovie]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
