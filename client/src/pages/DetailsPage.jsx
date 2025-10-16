@@ -108,21 +108,22 @@ function DetailsPage() {
   const [activeTab, setActiveTab] = useState('tab-1');
   const [selectedSeason, setSelectedSeason] = useState(0);
   const [selectedEpisode, setSelectedEpisode] = useState(0);
-  const [slimSelectInstances, setSlimSelectInstances] = useState([]);
   const [selectedQuality, setSelectedQuality] = useState('auto');
-  const [currentTime, setCurrentTime] = useState(0);
-  const [videoQualities, setVideoQualities] = useState([]);
-  const [currentQuality, setCurrentQuality] = useState('auto');
-
+  const [isLoadingMovie, setIsLoadingMovie] = useState(true);
 
   useEffect(() => {
-    if (!currentMovie || currentMovie._id !== movieId) {
-      dispatch(fetchMovieById(movieId));
-    }
+    setIsLoadingMovie(true); // Bắt đầu tải dữ liệu
+    dispatch(fetchMovieById(movieId))
+      .then(() => setIsLoadingMovie(false)) // Kết thúc tải khi thành công
+      .catch((error) => {
+        console.error('Lỗi khi tải phim:', error);
+        setIsLoadingMovie(false); // Kết thúc tải ngay cả khi lỗi
+      });
+
     if (movies.length === 0) {
       dispatch(fetchMovies());
     }
-  }, [dispatch, movieId, currentMovie, movies.length]);
+  }, [dispatch, movieId, movies.length]);
   const getVideoUrl = (quality = selectedQuality) => {
     if (!currentMovie) {
       console.error('Không có dữ liệu phim hiện tại');
@@ -151,65 +152,66 @@ function DetailsPage() {
 
   const videoUrl = getVideoUrl();
   useEffect(() => {
-  let playerInstance = null;
-  if (window.Plyr && playerRef.current && currentMovie?.video_source?.sources) {
-    const sources = currentMovie.video_source.sources;
-    const availableQualities = Object.keys(sources).map((key) => ({
-      src: `http://127.0.0.1:8080/ipfs/${sources[key]}`,
-      type: 'video/mp4',
-      size: parseInt(key.replace('p', '')), // Lấy số từ 1080p, 720p, 480p
-    }));
+    let playerInstance = null;
+    if (window.Plyr && playerRef.current && !isLoadingMovie && currentMovie?.video_source?.sources) {
+      const sources = currentMovie.video_source.sources;
+      const availableQualities = Object.keys(sources).map((key) => ({
+        src: `http://127.0.0.1:8080/ipfs/${sources[key]}`,
+        type: 'video/mp4',
+        size: parseInt(key.replace('p', '')),
+      }));
 
-    playerInstance = new window.Plyr(playerRef.current, {
-      controls: [
-        'play-large',
-        'play',
-        'progress',
-        'current-time',
-        'duration',
-        'mute',
-        'volume',
-        'settings',
-        'pip',
-        'airplay',
-        'fullscreen',
-      ],
-      settings: ['quality', 'speed', 'loop'],
-      clickToPlay: true,
-      quality: {
-        default: 1080, 
-        options: [1080, 720, 480], 
-        forced: true,
-        onChange: (quality) => {
-          setCurrentQuality(`${quality}p`); 
-          setSelectedQuality(`${quality}p`); // Cập nhật selectedQuality
+      playerInstance = new window.Plyr(playerRef.current, {
+        controls: [
+          'play-large',
+          'play',
+          'progress',
+          'current-time',
+          'duration',
+          'mute',
+          'volume',
+          'settings',
+          'pip',
+          'airplay',
+          'fullscreen',
+        ],
+        settings: ['quality', 'speed', 'loop'],
+        clickToPlay: true,
+        quality: {
+          default: 1080,
+          options: [1080, 720, 480],
+          forced: true,
+          onChange: (quality) => {
+            setCurrentQuality(`${quality}p`);
+            setSelectedQuality(`${quality}p`);
+          },
         },
-      },
-      i18n: {
-        qualityLabel: {
-          1080: '1080', // Nhãn hiển thị là "1080"
-          720: '720',   // Nhãn hiển thị là "720"
-          480: '480',   // Nhãn hiển thị là "480"
+        i18n: {
+          qualityLabel: {
+            1080: '1080',
+            720: '720',
+            480: '480',
+          },
         },
-      },
-    });
+      });
 
-    playerInstance.source = {
-      type: 'video',
-      sources: availableQualities,
-    };
+      playerInstance.source = {
+        type: 'video',
+        sources: availableQualities,
+      };
 
-    playerInstance.on('play', () => console.log('Video đang phát'));
-    playerInstance.on('pause', () => console.log('Video đã tạm dừng'));
-  }
-
-  return () => {
-    if (playerInstance) {
-      playerInstance.destroy();
+      playerInstance.on('play', () => console.log('Video đang phát'));
+      playerInstance.on('pause', () => console.log('Video đã tạm dừng'));
+    } else {
+      console.log('Plyr không khởi tạo: isLoadingMovie=', isLoadingMovie, 'currentMovie=', currentMovie);
     }
-  };
-}, [currentMovie]);
 
+    return () => {
+      if (playerInstance) {
+        playerInstance.destroy();
+      }
+    };
+  }, [currentMovie, isLoadingMovie]);
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
   };
@@ -296,7 +298,9 @@ function DetailsPage() {
             {/* player */}
             <div className="col-12 col-xl-6">
               <div className="section__player">
-                {currentMovie?.video_source?.sources ? (
+                {isLoadingMovie ? (
+                  <div className="error-message">Loading video...</div>
+                ) : currentMovie?.video_source?.sources ? (
                   <video
                     key={currentMovie._id}
                     ref={playerRef}
@@ -326,10 +330,9 @@ function DetailsPage() {
                     ))}
                   </video>
                 ) : (
-                  <div className="error-message">Video không khả dụng: Thiếu nguồn video.</div>
+                  <div className="error-message">Video không khả dụng.</div>
                 )}
               </div>
-
               {currentMovie.category === 'TVSeries' && currentMovie.seasons && (
                 <div className="section__item-filter">
                   <select className="section__item-select" name="season" id="filter__season">

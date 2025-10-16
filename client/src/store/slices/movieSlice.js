@@ -24,6 +24,9 @@ export const fetchMovieById = createAsyncThunk(
       if (!response.success) {
         throw new Error(response.message || 'Movie not found');
       }
+      if (!response.data) {
+        throw new Error('No data returned for movie');
+      }
       return response.data;
     } catch (error) {
       console.error('💥 fetchMovieById error:', error);
@@ -36,13 +39,13 @@ const movieSlice = createSlice({
   name: 'movies',
   initialState: {
     movies: [],
-    filteredMovies: [], // Danh sách phim sau khi lọc
-    currentMovie: null, // Thêm: Phim chi tiết đang xem
+    filteredMovies: [],
+    currentMovie: null,
     filters: {
-      genre: '0', // Mặc định: All genres
-      quality: '0', // Mặc định: Any quality
-      rating: '0', // Mặc định: Any rating
-      sort: '0', // Mặc định: Relevance
+      genre: '0',
+      quality: '0',
+      rating: '0',
+      sort: '0',
     },
     loading: false,
     error: null,
@@ -50,22 +53,18 @@ const movieSlice = createSlice({
   reducers: {
     setFilters: (state, action) => {
       state.filters = { ...state.filters, ...action.payload };
-      // Áp dụng logic lọc
       let filtered = [...state.movies];
 
-      // Lọc theo genre
       if (state.filters.genre !== '0') {
         filtered = filtered.filter(movie =>
           movie.genres && Array.isArray(movie.genres) && movie.genres.includes(state.filters.genre)
         );
       }
 
-      // Lọc theo quality
       if (state.filters.quality !== '0') {
         filtered = filtered.filter(movie => movie.quality === state.filters.quality);
       }
 
-      // Lọc theo rating
       if (state.filters.rating !== '0') {
         const minRating = parseFloat(state.filters.rating);
         filtered = filtered.filter(movie =>
@@ -73,16 +72,15 @@ const movieSlice = createSlice({
         );
       }
 
-      // Sắp xếp
       filtered.sort((a, b) => {
-        if (state.filters.sort === '1') { // Newest
+        if (state.filters.sort === '1') {
           const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
           const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
           return dateB - dateA;
-        } else if (state.filters.sort === '2') { // Highest Rated
+        } else if (state.filters.sort === '2') {
           return (b.imdb_rating || b.rating || 0) - (a.imdb_rating || a.rating || 0);
         }
-        return 0; // Relevance (giữ nguyên thứ tự)
+        return 0;
       });
 
       state.filteredMovies = filtered;
@@ -98,8 +96,7 @@ const movieSlice = createSlice({
         state.loading = false;
         const movies = Array.isArray(action.payload.data) ? action.payload.data : [];
         state.movies = movies;
-        state.filteredMovies = movies; // Khởi tạo filteredMovies
-        // Áp dụng lại bộ lọc nếu có
+        state.filteredMovies = movies;
         if (state.filters.genre !== '0' || state.filters.quality !== '0' || state.filters.rating !== '0' || state.filters.sort !== '0') {
           let filtered = [...movies];
           if (state.filters.genre !== '0') {
@@ -140,7 +137,7 @@ const movieSlice = createSlice({
       })
       .addCase(fetchMovieById.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentMovie = action.payload;
+        state.currentMovie = action.payload; // Đã sửa để lấy data trực tiếp
       })
       .addCase(fetchMovieById.rejected, (state, action) => {
         state.loading = false;
