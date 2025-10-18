@@ -145,7 +145,6 @@ function VideoPlayer({
   return (
     <div className="section__player">
       <video
-        key={getVideoKey()}
         ref={playerRef}
         controls
         crossOrigin="anonymous"
