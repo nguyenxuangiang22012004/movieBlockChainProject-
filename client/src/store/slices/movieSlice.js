@@ -18,7 +18,6 @@ export const fetchMovies = createAsyncThunk(
 export const fetchMovieById = createAsyncThunk(
   'movies/fetchMovieById',
   async (id, { rejectWithValue }) => {
-    console.log('🚀 fetchMovieById thunk started for ID:', id);
     try {
       const response = await getCatalogItemById(id);
       if (!response.success) {
@@ -29,7 +28,6 @@ export const fetchMovieById = createAsyncThunk(
       }
       return response.data;
     } catch (error) {
-      console.error('💥 fetchMovieById error:', error);
       return rejectWithValue(error.message || 'Failed to fetch movie details');
     }
   }
@@ -129,7 +127,6 @@ const movieSlice = createSlice({
       .addCase(fetchMovies.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Error fetching movies';
-        console.error('Error fetching movies:', action.payload);
       })
       .addCase(fetchMovieById.pending, (state) => {
         state.loading = true;
@@ -142,7 +139,6 @@ const movieSlice = createSlice({
       .addCase(fetchMovieById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Error fetching movie details';
-        console.error('Error fetching movie details:', action.payload);
       });
   },
 });

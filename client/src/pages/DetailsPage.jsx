@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMovieById, fetchMovies } from '../store/slices/movieSlice';
 import MovieCard from '../components/MovieCard';
+import VideoPlayer from '../components/VideoPlayer';
 
 // Dữ liệu mẫu cho comments, reviews, photos
 const commentsData = [
@@ -52,8 +53,6 @@ function DetailsPage() {
   const { movieId } = useParams();
   const dispatch = useDispatch();
   const { currentMovie, movies, loading, error } = useSelector((state) => state.movies);
-  const playerRef = useRef(null);
-  const playerInstanceRef = useRef(null);
   const [activeTab, setActiveTab] = useState('tab-1');
   const [selectedSeason, setSelectedSeason] = useState(0);
   const [selectedEpisode, setSelectedEpisode] = useState(0);
@@ -67,7 +66,6 @@ function DetailsPage() {
     dispatch(fetchMovieById(movieId))
       .then(() => setIsLoadingMovie(false))
       .catch((error) => {
-        console.error('Lỗi khi tải phim:', error);
         setIsLoadingMovie(false);
       });
 
@@ -86,101 +84,6 @@ function DetailsPage() {
   useEffect(() => {
     videoKey.current += 1;
   }, [selectedEpisode]);
-
-  // Cleanup toàn bộ player khi component unmount
-  useEffect(() => {
-    return () => {
-      if (playerInstanceRef.current) {
-        try {
-          if (typeof playerInstanceRef.current.destroy === 'function') {
-            playerInstanceRef.current.destroy();
-          }
-        } catch (error) {
-          console.error('Error destroying player on unmount:', error);
-        } finally {
-          playerInstanceRef.current = null;
-        }
-      }
-    };
-  }, []);
-
-  // Init Plyr player
-  useEffect(() => {
-    if (!isLoadingMovie && currentMovie && window.Plyr && playerRef.current) {
-      // Destroy player cũ trước
-      if (playerInstanceRef.current) {
-        try {
-          if (typeof playerInstanceRef.current.destroy === 'function') {
-            playerInstanceRef.current.destroy();
-          }
-        } catch (error) {
-          console.error('Error destroying old player:', error);
-        }
-        playerInstanceRef.current = null;
-      }
-
-      // Đợi DOM render xong
-      const timeoutId = setTimeout(() => {
-        if (!playerRef.current) return;
-
-        let videoSource = null;
-        if (currentMovie.category === 'Movie') {
-          videoSource = currentMovie.video_source;
-        } else if (currentMovie.category === 'TVSeries' && 
-                   currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
-          videoSource = currentMovie.seasons[selectedSeason].episodes[selectedEpisode].video_source;
-        }
-
-        if (videoSource?.sources) {
-          const sources = videoSource.sources;
-          const availableQualities = Object.keys(sources)
-            .map((key) => ({
-              src: `http://127.0.0.1:8080/ipfs/${sources[key]}`,
-              type: 'video/mp4',
-              size: parseInt(key.replace('p', '')),
-            }))
-            .sort((a, b) => b.size - a.size); // Sort descending
-
-          try {
-            playerInstanceRef.current = new window.Plyr(playerRef.current, {
-              controls: [
-                'play-large',
-                'play',
-                'progress',
-                'current-time',
-                'duration',
-                'mute',
-                'volume',
-                'settings',
-                'pip',
-                'airplay',
-                'fullscreen',
-              ],
-              settings: ['quality', 'speed', 'loop'],
-              clickToPlay: true,
-              quality: {
-                default: availableQualities[0]?.size || 1080,
-                options: availableQualities.map(q => q.size),
-                forced: true,
-                onChange: (quality) => {
-                  setSelectedQuality(`${quality}p`);
-                },
-              },
-            });
-
-            playerInstanceRef.current.source = {
-              type: 'video',
-              sources: availableQualities,
-            };
-          } catch (error) {
-            console.error('Error initializing Plyr:', error);
-          }
-        }
-      }, 150); // Tăng delay lên 150ms
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [currentMovie, isLoadingMovie, selectedSeason, selectedEpisode, videoKey.current]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -202,6 +105,10 @@ function DetailsPage() {
 
   const handleSyncChange = (e) => {
     setSelectedSync(e.target.value);
+  };
+
+  const handlePlayerReady = (quality) => {
+    setSelectedQuality(`${quality}p`);
   };
 
   const getRelatedMovies = () => {
@@ -273,55 +180,14 @@ function DetailsPage() {
             </div>
 
             <div className="col-12 col-xl-6">
-              <div className="section__player">
-                {isLoadingMovie ? (
-                  <div className="error-message">Loading video...</div>
-                ) : currentMovie ? (
-                  <video
-                    key={`video-${movieId}-s${selectedSeason}-e${selectedEpisode}-${videoKey.current}`}
-                    ref={playerRef}
-                    controls
-                    crossOrigin="anonymous"
-                    playsInline
-                    poster={currentMovie.cover_image_url}
-                    className="plyr-video"
-                  >
-                    {(() => {
-                      let videoSource = null;
-                      if (currentMovie.category === 'Movie') {
-                        videoSource = currentMovie.video_source;
-                      } else if (currentMovie.category === 'TVSeries' && 
-                                 currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
-                        videoSource = currentMovie.seasons[selectedSeason].episodes[selectedEpisode].video_source;
-                      }
-                      
-                      if (!videoSource?.sources) {
-                        return <div>Không tìm thấy nguồn video.</div>;
-                      }
-
-                      return Object.entries(videoSource.sources).map(([quality, cid], index) => (
-                        <source
-                          key={`${quality}-${index}`}
-                          src={`http://127.0.0.1:8080/ipfs/${cid}`}
-                          type="video/mp4"
-                          size={parseInt(quality.replace('p', ''))}
-                        />
-                      ));
-                    })()}
-                    {currentMovie.subtitles?.map((sub, index) => (
-                      <track
-                        key={`subtitle-${index}`}
-                        kind="subtitles"
-                        srcLang={sub.lang}
-                        label={sub.label}
-                        src={sub.url}
-                      />
-                    ))}
-                  </video>
-                ) : (
-                  <div className="error-message">Video không khả dụng.</div>
-                )}
-              </div>
+              <VideoPlayer
+                currentMovie={currentMovie}
+                isLoadingMovie={isLoadingMovie}
+                selectedSeason={selectedSeason}
+                selectedEpisode={selectedEpisode}
+                videoKey={videoKey.current}
+                onPlayerReady={handlePlayerReady}
+              />
               
               {currentMovie.category === 'TVSeries' && currentMovie.seasons && (
                 <div className="section__item-filter">
