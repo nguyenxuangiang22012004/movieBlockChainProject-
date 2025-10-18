@@ -4,14 +4,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchMovieById, fetchMovies } from '../store/slices/movieSlice';
 import MovieCard from '../components/MovieCard';
 
-// Dữ liệu mẫu cho comments, reviews, photos (thay bằng thực sau)
+// Dữ liệu mẫu cho comments, reviews, photos
 const commentsData = [
   {
     id: 1,
     avatar: '/img/user.svg',
     name: 'John Doe',
     time: '30.08.2018, 17:53',
-    text: 'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn\'t anything embarrassing hidden in the middle of text.',
+    text: 'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable.',
     likes: 12,
     dislikes: 7,
     replies: [
@@ -20,7 +20,7 @@ const commentsData = [
         avatar: '/img/user.svg',
         name: 'John Doe',
         time: '24.08.2018, 16:41',
-        text: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.',
+        text: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
         likes: 8,
         dislikes: 3
       }
@@ -31,62 +31,11 @@ const commentsData = [
     avatar: '/img/user.svg',
     name: 'John Doe',
     time: '11.08.2018, 11:11',
-    text: 'It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.',
+    text: 'It has survived not only five centuries, but also the leap into electronic typesetting.',
     likes: 11,
     dislikes: 1,
     isQuote: true,
-    quoteText: 'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable.'
-  },
-  {
-    id: 3,
-    avatar: '/img/user.svg',
-    name: 'John Doe',
-    time: '07.08.2018, 14:33',
-    text: 'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn\'t anything embarrassing hidden in the middle of text.',
-    likes: 99,
-    dislikes: 35
-  },
-  {
-    id: 4,
-    avatar: '/img/user.svg',
-    name: 'John Doe',
-    time: '02.08.2018, 15:24',
-    text: 'Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for \'lorem ipsum\' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).',
-    likes: 74,
-    dislikes: 13
-  }
-];
-
-const reviewsData = [
-  {
-    id: 1,
-    avatar: '/img/user.svg',
-    title: 'Best Marvel movie in my opinion',
-    name: 'John Doe',
-    time: '24.08.2018, 17:53',
-    rating: 6,
-    ratingClass: 'reviews__rating--yellow',
-    text: 'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn\'t anything embarrassing hidden in the middle of text.'
-  },
-  {
-    id: 2,
-    avatar: '/img/user.svg',
-    title: 'Best Marvel movie in my opinion',
-    name: 'John Doe',
-    time: '24.08.2018, 17:53',
-    rating: 9,
-    ratingClass: 'reviews__rating--green',
-    text: 'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn\'t anything embarrassing hidden in the middle of text.'
-  },
-  {
-    id: 3,
-    avatar: '/img/user.svg',
-    title: 'Best Marvel movie in my opinion',
-    name: 'John Doe',
-    time: '24.08.2018, 17:53',
-    rating: 5,
-    ratingClass: 'reviews__rating--red',
-    text: 'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn\'t anything embarrassing hidden in the middle of text.'
+    quoteText: 'There are many variations of passages of Lorem Ipsum available.'
   }
 ];
 
@@ -99,163 +48,184 @@ const photosData = [
   { id: 6, src: '/img/gallery/project-6.jpg', caption: 'Some image caption 6' },
 ];
 
-
 function DetailsPage() {
   const { movieId } = useParams();
   const dispatch = useDispatch();
   const { currentMovie, movies, loading, error } = useSelector((state) => state.movies);
   const playerRef = useRef(null);
+  const playerInstanceRef = useRef(null);
   const [activeTab, setActiveTab] = useState('tab-1');
   const [selectedSeason, setSelectedSeason] = useState(0);
   const [selectedEpisode, setSelectedEpisode] = useState(0);
-  const [selectedQuality, setSelectedQuality] = useState('auto');
+  const [selectedQuality, setSelectedQuality] = useState('1080p');
+  const [selectedSync, setSelectedSync] = useState('0');
   const [isLoadingMovie, setIsLoadingMovie] = useState(true);
+  const videoKey = useRef(0); // Để force re-render video element
 
   useEffect(() => {
-    setIsLoadingMovie(true); // Bắt đầu tải dữ liệu
+    setIsLoadingMovie(true);
     dispatch(fetchMovieById(movieId))
-      .then(() => setIsLoadingMovie(false)) // Kết thúc tải khi thành công
+      .then(() => setIsLoadingMovie(false))
       .catch((error) => {
         console.error('Lỗi khi tải phim:', error);
-        setIsLoadingMovie(false); // Kết thúc tải ngay cả khi lỗi
+        setIsLoadingMovie(false);
       });
 
     if (movies.length === 0) {
       dispatch(fetchMovies());
     }
   }, [dispatch, movieId, movies.length]);
-  const getVideoUrl = (quality = selectedQuality) => {
-    if (!currentMovie) {
-      console.error('Không có dữ liệu phim hiện tại');
-      return '';
-    }
 
-    let baseCid = '';
-
-    if (currentMovie.category === 'Movie') {
-      baseCid = currentMovie.video_source?.sources?.[quality] || currentMovie.video_source?.sources?.['1080p'];
-    } else if (currentMovie.category === 'TVSeries' && currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
-      const episode = currentMovie.seasons[selectedSeason].episodes[selectedEpisode];
-      baseCid = episode.video_source?.sources?.[quality] || episode.video_source?.sources?.['1080p'];
-    }
-
-    if (!baseCid) {
-      console.error('Không tìm thấy CID hợp lệ cho chất lượng:', quality, 'Category:', currentMovie.category);
-      return '';
-    }
-
-    const videoUrl = `http://127.0.0.1:8080/ipfs/${baseCid}`;
-    console.log('URL video được tạo:', videoUrl);
-    return videoUrl;
-  };
-
-  const videoUrl = getVideoUrl();
+  // Reset episode khi chuyển season
   useEffect(() => {
-    let playerInstance = null;
-    if (window.Plyr && playerRef.current && !isLoadingMovie) {
-      let videoSource = null;
+    setSelectedEpisode(0);
+    videoKey.current += 1; // Force re-render video
+  }, [selectedSeason]);
 
-      if (currentMovie.category === 'Movie') {
-        videoSource = currentMovie.video_source;
-      } else if (currentMovie.category === 'TVSeries' && currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
-        videoSource = currentMovie.seasons[selectedSeason].episodes[selectedEpisode].video_source;
-      }
+  // Force re-render video khi đổi episode
+  useEffect(() => {
+    videoKey.current += 1;
+  }, [selectedEpisode]);
 
-      if (videoSource?.sources) {
-        const sources = videoSource.sources;
-        const availableQualities = Object.keys(sources).map((key) => ({
-          src: `http://127.0.0.1:8080/ipfs/${sources[key]}`,
-          type: 'video/mp4',
-          size: parseInt(key.replace('p', '')),
-        }));
-
-        playerInstance = new window.Plyr(playerRef.current, {
-          controls: [
-            'play-large',
-            'play',
-            'progress',
-            'current-time',
-            'duration',
-            'mute',
-            'volume',
-            'settings',
-            'pip',
-            'airplay',
-            'fullscreen',
-          ],
-          settings: ['quality', 'speed', 'loop'],
-          clickToPlay: true,
-          quality: {
-            default: 1080,
-            options: [1080, 720, 480],
-            forced: true,
-            onChange: (quality) => {
-              setCurrentQuality(`${quality}p`);
-              setSelectedQuality(`${quality}p`);
-            },
-          },
-          i18n: {
-            qualityLabel: {
-              1080: '1080',
-              720: '720',
-              480: '480',
-            },
-          },
-        });
-
-        playerInstance.source = {
-          type: 'video',
-          sources: availableQualities,
-        };
-
-        playerInstance.on('play', () => console.log('Video đang phát'));
-        playerInstance.on('pause', () => console.log('Video đã tạm dừng'));
-      } else {
-        console.log('Plyr không khởi tạo: Không tìm thấy video_source.sources cho phim hiện tại');
-      }
-    } else {
-      console.log('Plyr không khởi tạo: isLoadingMovie=', isLoadingMovie, 'currentMovie=', currentMovie);
-    }
-
+  // Cleanup toàn bộ player khi component unmount
+  useEffect(() => {
     return () => {
-      if (playerInstance) {
-        playerInstance.destroy();
+      if (playerInstanceRef.current) {
+        try {
+          if (typeof playerInstanceRef.current.destroy === 'function') {
+            playerInstanceRef.current.destroy();
+          }
+        } catch (error) {
+          console.error('Error destroying player on unmount:', error);
+        } finally {
+          playerInstanceRef.current = null;
+        }
       }
     };
-  }, [currentMovie, isLoadingMovie, selectedSeason, selectedEpisode]);
+  }, []);
+
+  // Init Plyr player
+  useEffect(() => {
+    if (!isLoadingMovie && currentMovie && window.Plyr && playerRef.current) {
+      // Destroy player cũ trước
+      if (playerInstanceRef.current) {
+        try {
+          if (typeof playerInstanceRef.current.destroy === 'function') {
+            playerInstanceRef.current.destroy();
+          }
+        } catch (error) {
+          console.error('Error destroying old player:', error);
+        }
+        playerInstanceRef.current = null;
+      }
+
+      // Đợi DOM render xong
+      const timeoutId = setTimeout(() => {
+        if (!playerRef.current) return;
+
+        let videoSource = null;
+        if (currentMovie.category === 'Movie') {
+          videoSource = currentMovie.video_source;
+        } else if (currentMovie.category === 'TVSeries' && 
+                   currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
+          videoSource = currentMovie.seasons[selectedSeason].episodes[selectedEpisode].video_source;
+        }
+
+        if (videoSource?.sources) {
+          const sources = videoSource.sources;
+          const availableQualities = Object.keys(sources)
+            .map((key) => ({
+              src: `http://127.0.0.1:8080/ipfs/${sources[key]}`,
+              type: 'video/mp4',
+              size: parseInt(key.replace('p', '')),
+            }))
+            .sort((a, b) => b.size - a.size); // Sort descending
+
+          try {
+            playerInstanceRef.current = new window.Plyr(playerRef.current, {
+              controls: [
+                'play-large',
+                'play',
+                'progress',
+                'current-time',
+                'duration',
+                'mute',
+                'volume',
+                'settings',
+                'pip',
+                'airplay',
+                'fullscreen',
+              ],
+              settings: ['quality', 'speed', 'loop'],
+              clickToPlay: true,
+              quality: {
+                default: availableQualities[0]?.size || 1080,
+                options: availableQualities.map(q => q.size),
+                forced: true,
+                onChange: (quality) => {
+                  setSelectedQuality(`${quality}p`);
+                },
+              },
+            });
+
+            playerInstanceRef.current.source = {
+              type: 'video',
+              sources: availableQualities,
+            };
+          } catch (error) {
+            console.error('Error initializing Plyr:', error);
+          }
+        }
+      }, 150); // Tăng delay lên 150ms
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [currentMovie, isLoadingMovie, selectedSeason, selectedEpisode, videoKey.current]);
+
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
+  };
+
+  const handleSeasonChange = (e) => {
+    const seasonIndex = parseInt(e.target.value);
+    setSelectedSeason(seasonIndex);
+  };
+
+  const handleEpisodeChange = (e) => {
+    const episodeIndex = parseInt(e.target.value);
+    setSelectedEpisode(episodeIndex);
+  };
+
+  const handleQualityChange = (e) => {
+    setSelectedQuality(e.target.value);
+  };
+
+  const handleSyncChange = (e) => {
+    setSelectedSync(e.target.value);
   };
 
   const getRelatedMovies = () => {
     return movies.filter(m => m._id !== movieId).sort(() => 0.5 - Math.random()).slice(0, 6);
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading && !currentMovie) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!currentMovie) return <div>Movie not found</div>;
 
   return (
     <>
-      {/* details background */}
       <div className="section__details-bg" data-bg="img/bg/details__bg.jpg"></div>
-      {/* end details background */}
 
-      {/* details */}
       <section className="section section--details">
         <div className="container">
           <div className="row">
-            {/* title */}
             <div className="col-12">
               <h1 className="section__title section__title--head">{currentMovie.title}</h1>
             </div>
-            {/* end title */}
 
-            {/* content */}
             <div className="col-12 col-xl-6">
               <div className="item item--details">
                 <div className="row">
-                  {/* card cover */}
                   <div className="col-12 col-sm-5 col-md-5 col-lg-4 col-xl-6 col-xxl-5">
                     <div className="item__cover">
                       <img src={currentMovie.cover_image_url || '/img/covers/cover1.jpg'} alt={currentMovie.title} />
@@ -265,9 +235,7 @@ function DetailsPage() {
                       </button>
                     </div>
                   </div>
-                  {/* end card cover */}
 
-                  {/* card content */}
                   <div className="col-12 col-md-7 col-lg-8 col-xl-6 col-xxl-7">
                     <div className="item__content">
                       <ul className="item__meta">
@@ -300,51 +268,49 @@ function DetailsPage() {
                       </div>
                     </div>
                   </div>
-                  {/* end card content */}
                 </div>
               </div>
             </div>
-            {/* end content */}
 
-            {/* player */}
             <div className="col-12 col-xl-6">
               <div className="section__player">
                 {isLoadingMovie ? (
                   <div className="error-message">Loading video...</div>
                 ) : currentMovie ? (
                   <video
-                    key={`${currentMovie._id}-${selectedSeason}-${selectedEpisode}`} 
+                    key={`video-${movieId}-s${selectedSeason}-e${selectedEpisode}-${videoKey.current}`}
                     ref={playerRef}
                     controls
                     crossOrigin="anonymous"
                     playsInline
                     poster={currentMovie.cover_image_url}
-                    id="player"
                     className="plyr-video"
                   >
                     {(() => {
                       let videoSource = null;
                       if (currentMovie.category === 'Movie') {
                         videoSource = currentMovie.video_source;
-                      } else if (currentMovie.category === 'TVSeries' && currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
+                      } else if (currentMovie.category === 'TVSeries' && 
+                                 currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
                         videoSource = currentMovie.seasons[selectedSeason].episodes[selectedEpisode].video_source;
                       }
-                      return videoSource?.sources ? (
-                        Object.entries(videoSource.sources).map(([quality, cid], index) => (
-                          <source
-                            key={index}
-                            src={`http://127.0.0.1:8080/ipfs/${cid}`}
-                            type="video/mp4"
-                            size={parseInt(quality.replace('p', ''))}
-                          />
-                        ))
-                      ) : (
-                        <div>Không tìm thấy nguồn video cho episode này.</div>
-                      );
+                      
+                      if (!videoSource?.sources) {
+                        return <div>Không tìm thấy nguồn video.</div>;
+                      }
+
+                      return Object.entries(videoSource.sources).map(([quality, cid], index) => (
+                        <source
+                          key={`${quality}-${index}`}
+                          src={`http://127.0.0.1:8080/ipfs/${cid}`}
+                          type="video/mp4"
+                          size={parseInt(quality.replace('p', ''))}
+                        />
+                      ));
                     })()}
                     {currentMovie.subtitles?.map((sub, index) => (
                       <track
-                        key={index}
+                        key={`subtitle-${index}`}
                         kind="subtitles"
                         srcLang={sub.lang}
                         label={sub.label}
@@ -356,25 +322,44 @@ function DetailsPage() {
                   <div className="error-message">Video không khả dụng.</div>
                 )}
               </div>
+              
               {currentMovie.category === 'TVSeries' && currentMovie.seasons && (
                 <div className="section__item-filter">
-                  <select className="section__item-select" name="season" id="filter__season">
+                  <select 
+                    className="section__item-select" 
+                    name="season" 
+                    id="filter__season"
+                    value={selectedSeason}
+                    onChange={handleSeasonChange}
+                  >
                     {currentMovie.seasons.map((season, index) => (
-                      <option key={index} value={index}>
+                      <option key={`season-${index}`} value={index}>
                         Season {season.season_number}: {season.title}
                       </option>
                     ))}
                   </select>
 
-                  <select className="section__item-select" name="series" id="filter__series">
+                  <select 
+                    className="section__item-select" 
+                    name="series" 
+                    id="filter__series"
+                    value={selectedEpisode}
+                    onChange={handleEpisodeChange}
+                  >
                     {currentMovie.seasons[selectedSeason]?.episodes?.map((episode, index) => (
-                      <option key={index} value={index}>
+                      <option key={`episode-${index}`} value={index}>
                         Episode {episode.episode_number}: {episode.title}
                       </option>
                     ))}
                   </select>
 
-                  <select className="section__item-select" name="sync" id="filter__sync">
+                  <select 
+                    className="section__item-select" 
+                    name="sync" 
+                    id="filter__sync"
+                    value={selectedSync}
+                    onChange={handleSyncChange}
+                  >
                     <option value="0">Eng.Original</option>
                     <option value="1">NewStudio</option>
                     <option value="2">LostFilm</option>
@@ -386,34 +371,36 @@ function DetailsPage() {
                     name="quality"
                     id="filter__quality"
                     value={selectedQuality}
-                    onChange={(e) => setSelectedQuality(e.target.value)}
+                    onChange={handleQualityChange}
                   >
-                    {Object.keys(currentMovie?.video_source?.sources || {}).map((quality) => (
-                      <option key={quality} value={quality}>
-                        {quality}
-                      </option>
-                    ))}
+                    {(() => {
+                      let videoSource = null;
+                      if (currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
+                        videoSource = currentMovie.seasons[selectedSeason].episodes[selectedEpisode].video_source;
+                      }
+                      return videoSource?.sources ? (
+                        Object.keys(videoSource.sources).map((quality) => (
+                          <option key={`quality-${quality}`} value={quality}>
+                            {quality}
+                          </option>
+                        ))
+                      ) : null;
+                    })()}
                   </select>
                 </div>
               )}
             </div>
-            {/* end player */}
           </div>
         </div>
       </section>
-      {/* end details */}
 
-      {/* content */}
       <section className="content">
         <div className="content__head content__head--mt">
           <div className="container">
             <div className="row">
               <div className="col-12">
-                {/* content title */}
                 <h2 className="content__title">Discover</h2>
-                {/* end content title */}
 
-                {/* content tabs nav */}
                 <ul className="nav nav-tabs content__tabs" id="content__tabs" role="tablist">
                   <li className="nav-item" role="presentation">
                     <button
@@ -423,7 +410,6 @@ function DetailsPage() {
                       Comments
                     </button>
                   </li>
-
                   <li className="nav-item" role="presentation">
                     <button
                       className={activeTab === 'tab-2' ? 'active' : ''}
@@ -432,7 +418,6 @@ function DetailsPage() {
                       Reviews
                     </button>
                   </li>
-
                   <li className="nav-item" role="presentation">
                     <button
                       className={activeTab === 'tab-3' ? 'active' : ''}
@@ -450,9 +435,7 @@ function DetailsPage() {
         <div className="container">
           <div className="row">
             <div className="col-12 col-lg-8">
-              {/* content tabs */}
               <div className="tab-content">
-                {/* Comments Tab */}
                 {activeTab === 'tab-1' && (
                   <div className="tab-pane fade show active">
                     <div className="row">
@@ -487,7 +470,6 @@ function DetailsPage() {
                                   </div>
                                 </li>
 
-                                {/* Render replies in a separate list */}
                                 {comment.replies && comment.replies.length > 0 && (
                                   <ul className="comments__replies">
                                     {comment.replies.map(reply => (
@@ -513,141 +495,11 @@ function DetailsPage() {
                               </React.Fragment>
                             ))}
                           </ul>
-                          {/* paginator mobile */}
-                          <div className="paginator-mob paginator-mob--comments">
-                            <span className="paginator-mob__pages">5 of 628</span>
-
-                            <ul className="paginator-mob__nav">
-                              <li>
-                                <a href="#">
-                                  <i className="ti ti-chevron-left"></i>
-                                  <span>Prev</span>
-                                </a>
-                              </li>
-                              <li>
-                                <a href="#">
-                                  <span>Next</span>
-                                  <i className="ti ti-chevron-right"></i>
-                                </a>
-                              </li>
-                            </ul>
-                          </div>
-                          {/* end paginator mobile */}
-
-                          {/* paginator desktop */}
-                          <ul className="paginator paginator--comments">
-                            <li className="paginator__item paginator__item--prev">
-                              <a href="#"><i className="ti ti-chevron-left"></i></a>
-                            </li>
-                            <li className="paginator__item"><a href="#">1</a></li>
-                            <li className="paginator__item paginator__item--active"><a href="#">2</a></li>
-                            <li className="paginator__item"><a href="#">3</a></li>
-                            <li className="paginator__item"><a href="#">4</a></li>
-                            <li className="paginator__item"><span>...</span></li>
-                            <li className="paginator__item"><a href="#">36</a></li>
-                            <li className="paginator__item paginator__item--next">
-                              <a href="#"><i className="ti ti-chevron-right"></i></a>
-                            </li>
-                          </ul>
-                          {/* end paginator desktop */}
 
                           <form action="#" className="sign__form sign__form--comments">
-                            <div className="sign__group">
-                              <textarea id="text" name="text" className="sign__textarea" placeholder="Add comment"></textarea>
-                            </div>
-                            <button type="button" className="sign__btn sign__btn--small">Send</button>
-                          </form>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Reviews Tab */}
-                {activeTab === 'tab-2' && (
-                  <div className="tab-pane fade show active">
-                    <div className="row">
-                      <div className="col-12">
-                        <div className="reviews">
-                          <ul className="reviews__list">
-                            {reviewsData.map(review => (
-                              <li key={review.id} className="reviews__item">
-                                <div className="reviews__autor">
-                                  <img className="reviews__avatar" src={review.avatar} alt="" />
-                                  <span className="reviews__name">{review.title}</span>
-                                  <span className="reviews__time">by {review.name}, {review.time}</span>
-                                  <span className={`reviews__rating ${review.ratingClass}`}>
-                                    {review.rating}
-                                  </span>
-                                </div>
-                                <p className="reviews__text">{review.text}</p>
-                              </li>
-                            ))}
-                          </ul>
-
-                          {/* paginator mobile */}
-                          <div className="paginator-mob paginator-mob--comments">
-                            <span className="paginator-mob__pages">5 of 628</span>
-
-                            <ul className="paginator-mob__nav">
-                              <li>
-                                <a href="#">
-                                  <i className="ti ti-chevron-left"></i>
-                                  <span>Prev</span>
-                                </a>
-                              </li>
-                              <li>
-                                <a href="#">
-                                  <span>Next</span>
-                                  <i className="ti ti-chevron-right"></i>
-                                </a>
-                              </li>
-                            </ul>
-                          </div>
-                          {/* end paginator mobile */}
-
-                          {/* paginator desktop */}
-                          <ul className="paginator paginator--comments">
-                            <li className="paginator__item paginator__item--prev">
-                              <a href="#"><i className="ti ti-chevron-left"></i></a>
-                            </li>
-                            <li className="paginator__item"><a href="#">1</a></li>
-                            <li className="paginator__item paginator__item--active"><a href="#">2</a></li>
-                            <li className="paginator__item"><a href="#">3</a></li>
-                            <li className="paginator__item"><a href="#">4</a></li>
-                            <li className="paginator__item"><span>...</span></li>
-                            <li className="paginator__item"><a href="#">36</a></li>
-                            <li className="paginator__item paginator__item--next">
-                              <a href="#"><i className="ti ti-chevron-right"></i></a>
-                            </li>
-                          </ul>
-                          {/* end paginator desktop */}
-
-                          <form action="#" className="sign__form sign__form--comments">
-                            <div className="sign__group">
-                              <input type="text" className="sign__input" placeholder="Title" />
-                            </div>
-
-                            <div className="sign__group">
-                              <select className="sign__select" name="rating" id="rating">
-                                <option value="0">Rating</option>
-                                <option value="1">1 star</option>
-                                <option value="2">2 stars</option>
-                                <option value="3">3 stars</option>
-                                <option value="4">4 stars</option>
-                                <option value="5">5 stars</option>
-                                <option value="6">6 stars</option>
-                                <option value="7">7 stars</option>
-                                <option value="8">8 stars</option>
-                                <option value="9">9 stars</option>
-                                <option value="10">10 stars</option>
-                              </select>
-                            </div>
-
                             <div className="sign__group">
                               <textarea id="textreview" name="textreview" className="sign__textarea" placeholder="Add review"></textarea>
                             </div>
-
                             <button type="button" className="sign__btn sign__btn--small">Send</button>
                           </form>
                         </div>
@@ -656,10 +508,8 @@ function DetailsPage() {
                   </div>
                 )}
 
-                {/* Photos Tab */}
                 {activeTab === 'tab-3' && (
                   <div className="tab-pane fade show active">
-                    {/* project gallery */}
                     <div className="gallery" itemScope>
                       <div className="row">
                         {photosData.map(photo => (
@@ -672,21 +522,16 @@ function DetailsPage() {
                         ))}
                       </div>
                     </div>
-                    {/* end project gallery */}
                   </div>
                 )}
               </div>
-              {/* end content tabs */}
             </div>
 
-            {/* sidebar */}
             <div className="col-12 col-lg-4">
               <div className="row">
-                {/* section title */}
                 <div className="col-12">
                   <h2 className="section__title section__title--sidebar">You may also like...</h2>
                 </div>
-                {/* end section title */}
 
                 {getRelatedMovies().map(movie => (
                   <div key={movie._id} className="col-6 col-sm-4 col-lg-6">
@@ -701,42 +546,9 @@ function DetailsPage() {
                 ))}
               </div>
             </div>
-            {/* end sidebar */}
           </div>
         </div>
       </section>
-      {/* end content */}
-
-      {/* PhotoSwipe */}
-      <div className="pswp" tabIndex="-1" role="dialog" aria-hidden="true">
-        <div className="pswp__bg"></div>
-        <div className="pswp__scroll-wrap">
-          <div className="pswp__container">
-            <div className="pswp__item"></div>
-            <div className="pswp__item"></div>
-            <div className="pswp__item"></div>
-          </div>
-          <div className="pswp__ui pswp__ui--hidden">
-            <div className="pswp__top-bar">
-              <div className="pswp__counter"></div>
-              <button className="pswp__button pswp__button--close" title="Close (Esc)"></button>
-              <button className="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
-              <div className="pswp__preloader">
-                <div className="pswp__preloader__icn">
-                  <div className="pswp__preloader__cut">
-                    <div className="pswp__preloader__donut"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <button className="pswp__button pswp__button--arrow--left" title="Previous (arrow left)"></button>
-            <button className="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button>
-            <div className="pswp__caption">
-              <div className="pswp__caption__center"></div>
-            </div>
-          </div>
-        </div>
-      </div>
     </>
   );
 }
