@@ -134,7 +134,8 @@ const movieSlice = createSlice({
       })
       .addCase(fetchMovieById.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentMovie = action.payload; // Đã sửa để lấy data trực tiếp
+        console.log('Fetched new movie:', action.payload); // Debug
+        state.currentMovie = { ...action.payload }; // Deep copy để detect thay đổi
       })
       .addCase(fetchMovieById.rejected, (state, action) => {
         state.loading = false;

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMovieById, fetchMovies } from '../store/slices/movieSlice';
 import MovieCard from '../components/MovieCard';
@@ -51,18 +51,33 @@ const photosData = [
 
 function DetailsPage() {
   const { movieId } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const dispatch = useDispatch();
   const { currentMovie, movies, loading, error } = useSelector((state) => state.movies);
   const [activeTab, setActiveTab] = useState('tab-1');
-  const [selectedSeason, setSelectedSeason] = useState(0);
-  const [selectedEpisode, setSelectedEpisode] = useState(0);
+
+  // Đọc season/episode từ URL query params, mặc định là season 0, episode 0 (zero-based index)
+  const seasonFromUrl = parseInt(searchParams.get('season')) || 0;
+  const episodeFromUrl = parseInt(searchParams.get('episode')) || 0;
+
+  const [selectedSeason, setSelectedSeason] = useState(seasonFromUrl);
+  const [selectedEpisode, setSelectedEpisode] = useState(episodeFromUrl > 0 ? episodeFromUrl : 0); // Default to 0, but allow URL override
   const [selectedQuality, setSelectedQuality] = useState('1080p');
   const [selectedSync, setSelectedSync] = useState('0');
   const [isLoadingMovie, setIsLoadingMovie] = useState(true);
-  const videoKey = useRef(0); // Để force re-render video element
+  const videoKey = useRef(0);
+
+  // Sync state với URL khi URL thay đổi
+  useEffect(() => {
+    setSelectedSeason(seasonFromUrl);
+    setSelectedEpisode(episodeFromUrl > 0 ? episodeFromUrl : 0); // Ensure episode defaults to 0 if not in URL
+  }, [seasonFromUrl, episodeFromUrl]);
 
   useEffect(() => {
+    console.log('Fetching movie with ID:', movieId);
     setIsLoadingMovie(true);
+    videoKey.current = Date.now();
     dispatch(fetchMovieById(movieId))
       .then(() => setIsLoadingMovie(false))
       .catch((error) => {
@@ -74,14 +89,21 @@ function DetailsPage() {
     }
   }, [dispatch, movieId, movies.length]);
 
-  // Reset episode khi chuyển season
+  // Reset episode khi chuyển season, mặc định về episode 0
   useEffect(() => {
-    setSelectedEpisode(0);
-    videoKey.current += 1; // Force re-render video
-  }, [selectedSeason]);
+    if (currentMovie?.category?.toLowerCase() === 'tvseries') {
+      setSelectedEpisode(0);
+      videoKey.current += 1;
+      navigate(`/details/${movieId}?season=${selectedSeason}&episode=0`, { replace: true });
+    } else {
+      // Nếu là movie thì đảm bảo không có query trên URL
+      navigate(`/details/${movieId}`, { replace: true });
+    }
+  }, [selectedSeason, currentMovie, movieId, navigate]);
 
   // Force re-render video khi đổi episode
   useEffect(() => {
+    console.log('Episode changed to:', selectedEpisode, 'New videoKey:', videoKey.current);
     videoKey.current += 1;
   }, [selectedEpisode]);
 
@@ -90,13 +112,17 @@ function DetailsPage() {
   };
 
   const handleSeasonChange = (e) => {
+    if (currentMovie?.category?.toLowerCase() !== 'tvseries') return;
     const seasonIndex = parseInt(e.target.value);
     setSelectedSeason(seasonIndex);
+    navigate(`/details/${movieId}?season=${seasonIndex}&episode=0`, { replace: true });
   };
 
   const handleEpisodeChange = (e) => {
+    if (currentMovie?.category?.toLowerCase() !== 'tvseries') return;
     const episodeIndex = parseInt(e.target.value);
     setSelectedEpisode(episodeIndex);
+    navigate(`/details/${movieId}?season=${selectedSeason}&episode=${episodeIndex}`, { replace: true });
   };
 
   const handleQualityChange = (e) => {
@@ -151,7 +177,7 @@ function DetailsPage() {
                           <span>Cast:</span>
                           {currentMovie.actors?.map((actor, index) => (
                             <React.Fragment key={index}>
-                              <Link to="/actor">{actor}</Link>
+                              <Link key={`actor-${index}`} to="/actor">{actor}</Link>
                               {index < currentMovie.actors.length - 1 ? ' ' : ''}
                             </React.Fragment>
                           )) || 'Unknown'}
@@ -185,43 +211,43 @@ function DetailsPage() {
                 isLoadingMovie={isLoadingMovie}
                 selectedSeason={selectedSeason}
                 selectedEpisode={selectedEpisode}
+                selectedQuality={selectedQuality}
                 videoKey={videoKey.current}
                 onPlayerReady={handlePlayerReady}
               />
-              
               {currentMovie.category === 'TVSeries' && currentMovie.seasons && (
                 <div className="section__item-filter">
-                  <select 
-                    className="section__item-select" 
-                    name="season" 
+                  <select
+                    className="section__item-select"
+                    name="season"
                     id="filter__season"
                     value={selectedSeason}
                     onChange={handleSeasonChange}
                   >
                     {currentMovie.seasons.map((season, index) => (
                       <option key={`season-${index}`} value={index}>
-                        Season {season.season_number}: {season.title}
+                        Season {index + 1}: {season.title}
                       </option>
                     ))}
                   </select>
 
-                  <select 
-                    className="section__item-select" 
-                    name="series" 
+                  <select
+                    className="section__item-select"
+                    name="series"
                     id="filter__series"
                     value={selectedEpisode}
                     onChange={handleEpisodeChange}
                   >
                     {currentMovie.seasons[selectedSeason]?.episodes?.map((episode, index) => (
                       <option key={`episode-${index}`} value={index}>
-                        Episode {episode.episode_number}: {episode.title}
+                        Episode {index + 1}: {episode.title}
                       </option>
                     ))}
                   </select>
 
-                  <select 
-                    className="section__item-select" 
-                    name="sync" 
+                  <select
+                    className="section__item-select"
+                    name="sync"
                     id="filter__sync"
                     value={selectedSync}
                     onChange={handleSyncChange}
@@ -234,10 +260,10 @@ function DetailsPage() {
 
                   <select
                     className="section__item-select"
+                    onChange={handleQualityChange}
                     name="quality"
                     id="filter__quality"
                     value={selectedQuality}
-                    onChange={handleQualityChange}
                   >
                     {(() => {
                       let videoSource = null;
@@ -287,7 +313,7 @@ function DetailsPage() {
                   <li className="nav-item" role="presentation">
                     <button
                       className={activeTab === 'tab-3' ? 'active' : ''}
-                      onClick={() => handleTabChange('tab-3')}
+                      onChange={() => handleTabChange('tab-3')}
                     >
                       Photos
                     </button>
