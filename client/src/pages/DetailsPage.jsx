@@ -57,21 +57,22 @@ function DetailsPage() {
   const { currentMovie, movies, loading, error } = useSelector((state) => state.movies);
   const [activeTab, setActiveTab] = useState('tab-1');
 
-  // Đọc season/episode từ URL query params, mặc định là season 0, episode 0 (zero-based index)
-  const seasonFromUrl = parseInt(searchParams.get('season')) || 0;
-  const episodeFromUrl = parseInt(searchParams.get('episode')) || 0;
+  // ✅ Đọc từ URL (1-based) và chuyển thành index (0-based)
+  const seasonFromUrl = parseInt(searchParams.get('season')) || 1; // Default 1
+  const episodeFromUrl = parseInt(searchParams.get('episode')) || 1; // Default 1
 
-  const [selectedSeason, setSelectedSeason] = useState(seasonFromUrl);
-  const [selectedEpisode, setSelectedEpisode] = useState(episodeFromUrl > 0 ? episodeFromUrl : 0); // Default to 0, but allow URL override
+  // ✅ State lưu index thực tế (0-based) để truy xuất mảng
+  const [selectedSeasonIndex, setSelectedSeasonIndex] = useState(seasonFromUrl - 1);
+  const [selectedEpisodeIndex, setSelectedEpisodeIndex] = useState(episodeFromUrl - 1);
   const [selectedQuality, setSelectedQuality] = useState('1080p');
   const [selectedSync, setSelectedSync] = useState('0');
   const [isLoadingMovie, setIsLoadingMovie] = useState(true);
   const videoKey = useRef(0);
 
-  // Sync state với URL khi URL thay đổi
+  // ✅ Sync state với URL khi URL thay đổi
   useEffect(() => {
-    setSelectedSeason(seasonFromUrl);
-    setSelectedEpisode(episodeFromUrl > 0 ? episodeFromUrl : 0); // Ensure episode defaults to 0 if not in URL
+    setSelectedSeasonIndex(seasonFromUrl - 1);
+    setSelectedEpisodeIndex(episodeFromUrl - 1);
   }, [seasonFromUrl, episodeFromUrl]);
 
   useEffect(() => {
@@ -89,23 +90,24 @@ function DetailsPage() {
     }
   }, [dispatch, movieId, movies.length]);
 
-  // Reset episode khi chuyển season, mặc định về episode 0
+  // ✅ Reset episode về 1 khi chuyển season
   useEffect(() => {
     if (currentMovie?.category?.toLowerCase() === 'tvseries') {
-      setSelectedEpisode(0);
+      setSelectedEpisodeIndex(0);
       videoKey.current += 1;
-      navigate(`/details/${movieId}?season=${selectedSeason}&episode=0`, { replace: true });
+      // URL hiển thị season và episode bắt đầu từ 1
+      navigate(`/details/${movieId}?season=${selectedSeasonIndex + 1}&episode=1`, { replace: true });
     } else {
       // Nếu là movie thì đảm bảo không có query trên URL
       navigate(`/details/${movieId}`, { replace: true });
     }
-  }, [selectedSeason, currentMovie, movieId, navigate]);
+  }, [selectedSeasonIndex, currentMovie, movieId, navigate]);
 
   // Force re-render video khi đổi episode
   useEffect(() => {
-    console.log('Episode changed to:', selectedEpisode, 'New videoKey:', videoKey.current);
+    console.log('Episode index changed to:', selectedEpisodeIndex, 'New videoKey:', videoKey.current);
     videoKey.current += 1;
-  }, [selectedEpisode]);
+  }, [selectedEpisodeIndex]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -113,16 +115,18 @@ function DetailsPage() {
 
   const handleSeasonChange = (e) => {
     if (currentMovie?.category?.toLowerCase() !== 'tvseries') return;
-    const seasonIndex = parseInt(e.target.value);
-    setSelectedSeason(seasonIndex);
-    navigate(`/details/${movieId}?season=${seasonIndex}&episode=0`, { replace: true });
+    const seasonIndex = parseInt(e.target.value); // Đây là 0-based index
+    setSelectedSeasonIndex(seasonIndex);
+    // URL hiển thị +1 (1-based)
+    navigate(`/details/${movieId}?season=${seasonIndex + 1}&episode=1`, { replace: true });
   };
 
   const handleEpisodeChange = (e) => {
     if (currentMovie?.category?.toLowerCase() !== 'tvseries') return;
-    const episodeIndex = parseInt(e.target.value);
-    setSelectedEpisode(episodeIndex);
-    navigate(`/details/${movieId}?season=${selectedSeason}&episode=${episodeIndex}`, { replace: true });
+    const episodeIndex = parseInt(e.target.value); // Đây là 0-based index
+    setSelectedEpisodeIndex(episodeIndex);
+    // URL hiển thị +1 (1-based)
+    navigate(`/details/${movieId}?season=${selectedSeasonIndex + 1}&episode=${episodeIndex + 1}`, { replace: true });
   };
 
   const handleQualityChange = (e) => {
@@ -209,8 +213,8 @@ function DetailsPage() {
               <VideoPlayer
                 currentMovie={currentMovie}
                 isLoadingMovie={isLoadingMovie}
-                selectedSeason={selectedSeason}
-                selectedEpisode={selectedEpisode}
+                selectedSeason={selectedSeasonIndex}
+                selectedEpisode={selectedEpisodeIndex}
                 selectedQuality={selectedQuality}
                 videoKey={videoKey.current}
                 onPlayerReady={handlePlayerReady}
@@ -221,7 +225,7 @@ function DetailsPage() {
                     className="section__item-select"
                     name="season"
                     id="filter__season"
-                    value={selectedSeason}
+                    value={selectedSeasonIndex}
                     onChange={handleSeasonChange}
                   >
                     {currentMovie.seasons.map((season, index) => (
@@ -235,10 +239,10 @@ function DetailsPage() {
                     className="section__item-select"
                     name="series"
                     id="filter__series"
-                    value={selectedEpisode}
+                    value={selectedEpisodeIndex}
                     onChange={handleEpisodeChange}
                   >
-                    {currentMovie.seasons[selectedSeason]?.episodes?.map((episode, index) => (
+                    {currentMovie.seasons[selectedSeasonIndex]?.episodes?.map((episode, index) => (
                       <option key={`episode-${index}`} value={index}>
                         Episode {index + 1}: {episode.title}
                       </option>
@@ -267,8 +271,8 @@ function DetailsPage() {
                   >
                     {(() => {
                       let videoSource = null;
-                      if (currentMovie.seasons?.[selectedSeason]?.episodes?.[selectedEpisode]) {
-                        videoSource = currentMovie.seasons[selectedSeason].episodes[selectedEpisode].video_source;
+                      if (currentMovie.seasons?.[selectedSeasonIndex]?.episodes?.[selectedEpisodeIndex]) {
+                        videoSource = currentMovie.seasons[selectedSeasonIndex].episodes[selectedEpisodeIndex].video_source;
                       }
                       return videoSource?.sources ? (
                         Object.keys(videoSource.sources).map((quality) => (
@@ -313,7 +317,7 @@ function DetailsPage() {
                   <li className="nav-item" role="presentation">
                     <button
                       className={activeTab === 'tab-3' ? 'active' : ''}
-                      onChange={() => handleTabChange('tab-3')}
+                      onClick={() => handleTabChange('tab-3')}
                     >
                       Photos
                     </button>
