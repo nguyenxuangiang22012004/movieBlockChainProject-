@@ -195,7 +195,12 @@ function DetailsPage() {
                             </React.Fragment>
                           ))}
                         </li>
-                        <li><span>Premiere:</span> {currentMovie.release_year}</li>
+                        <li>
+                          <span>Premiere:</span>{" "}
+                          {currentMovie.release_year
+                            ? new Date(currentMovie.release_year).toLocaleDateString("vi-VN")
+                            : "N/A"}
+                        </li>
                         <li><span>Running time:</span> {currentMovie.running_time} min</li>
                         <li><span>Country:</span> <Link to="/catalog">{currentMovie.country}</Link></li>
                       </ul>
