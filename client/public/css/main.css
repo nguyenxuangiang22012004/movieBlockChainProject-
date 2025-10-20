@@ -4493,3 +4493,38 @@ body::-webkit-scrollbar-thumb {
   height: 100%;
   min-height: 100vh;
 }
+
+
+
+/* CRITICAL: Must be at the end of CSS file */
+.plyr.plyr--video.plyr--fullscreen-enabled:-webkit-full-screen,
+.plyr.plyr--video.plyr--fullscreen-enabled:fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
+/* Video wrapper in fullscreen */
+.plyr:-webkit-full-screen .plyr__video-wrapper,
+.plyr:fullscreen .plyr__video-wrapper {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+}
+
+/* Video element in fullscreen */
+.plyr:-webkit-full-screen video,
+.plyr:fullscreen video {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: cover !important;
+}

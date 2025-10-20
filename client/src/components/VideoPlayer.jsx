@@ -110,6 +110,11 @@ function VideoPlayer({
         "fullscreen",
       ],
       settings: ["quality", "speed", "loop"],
+      fullscreen: {
+        enabled: true,
+        fallback: true,
+        iosNative: true,
+      },
       quality: {
         default: parseInt(selectedQuality?.replace("p", "")) || sources[0]?.size,
         options: sources.map((s) => s.size),
