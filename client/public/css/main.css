@@ -4528,3 +4528,7 @@ body::-webkit-scrollbar-thumb {
   max-height: none !important;
   object-fit: cover !important;
 }
+
+.section__item-select{
+  color: white;
+}
