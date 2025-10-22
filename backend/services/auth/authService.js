@@ -77,78 +77,63 @@ export const loginService = async (email, password) => {
 };
 
 export const registerService = async (userData) => {
-  try {
-    const { username, email, password, walletAddress, full_name } = userData;
+  const { username, email, password } = userData;
 
-    // Kiểm tra input
-    if (!username || !email || !password || !walletAddress) {
-      return {
-        success: false,
-        message: "Vui lòng điền đầy đủ thông tin bắt buộc",
-      };
-    }
+  // 1️⃣ Kiểm tra input
+  if (!username || !email || !password) {
+    return {
+      success: false,
+      statusCode: 400,
+      message: "Vui lòng điền đầy đủ thông tin bắt buộc",
+    };
+  }
 
-    // Kiểm tra email đã tồn tại
-    const existingUser = await User.findOne({ $or: [{ email }, { username }, { walletAddress }] });
-    if (existingUser) {
-      if (existingUser.email === email) {
-        return { success: false, message: "Email đã được sử dụng" };
-      }
-      if (existingUser.username === username) {
-        return { success: false, message: "Username đã được sử dụng" };
-      }
-      if (existingUser.walletAddress === walletAddress) {
-        return { success: false, message: "Wallet address đã được sử dụng" };
-      }
-    }
+  // 2️⃣ Kiểm tra email hoặc username đã tồn tại
+  const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+  if (existingUser) {
+    const message =
+      existingUser.email === email
+        ? "Email đã được sử dụng"
+        : "Username đã được sử dụng";
 
-    // Mã hóa password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    return { success: false, statusCode: 400, message };
+  }
 
-    // Tạo user mới
-    const newUser = new User({
-      username,
-      email,
-      password: hashedPassword,
-      walletAddress,
-      full_name: full_name || "",
-    });
+  // 3️⃣ Mã hóa password
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
 
-    await newUser.save();
+  // 4️⃣ Tạo user mới
+  const newUser = await User.create({
+    username,
+    email,
+    password: hashedPassword,
+  });
 
-    // Tạo token cho user mới
-    const token = jwt.sign(
-      {
-        userId: newUser._id,
+  // 5️⃣ Tạo token JWT
+  const token = jwt.sign(
+    {
+      userId: newUser._id,
+      email: newUser.email,
+      role: newUser.role,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN }
+  );
+
+  // 6️⃣ Chuẩn hóa response
+  return {
+    success: true,
+    statusCode: 201,
+    message: "Đăng ký thành công",
+    data: {
+      token,
+      user: {
+        id: newUser._id,
+        username: newUser.username,
         email: newUser.email,
         role: newUser.role,
       },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
-
-    const userResponse = {
-      id: newUser._id,
-      username: newUser.username,
-      email: newUser.email,
-      walletAddress: newUser.walletAddress,
-      full_name: newUser.full_name,
-      avatar_url: newUser.avatar_url,
-      role: newUser.role,
-    };
-
-    return {
-      success: true,
-      message: "Đăng ký thành công",
-      token,
-      user: userResponse,
-    };
-  } catch (error) {
-    console.error("Register service error:", error);
-    return {
-      success: false,
-      message: "Đã xảy ra lỗi trong quá trình đăng ký",
-    };
-  }
+    },
+  };
 };

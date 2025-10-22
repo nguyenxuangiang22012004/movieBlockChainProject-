@@ -10,13 +10,17 @@ export const loginController = async (req, res) => {
   }
 };
 
+
 export const registerController = async (req, res) => {
-  const result = await registerService(req.body);
-  
-  if (result.success) {
-    res.status(201).json(result);
-  } else {
-    res.status(400).json(result);
+  try {
+    const result = await registerService(req.body);
+    return res.status(result.statusCode).json(result);
+  } catch (error) {
+    console.error("Register Controller Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi máy chủ, vui lòng thử lại sau",
+    });
   }
 };
 
