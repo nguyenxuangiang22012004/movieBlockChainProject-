@@ -1,4 +1,4 @@
-import { loginService, registerService ,verifyEmailService} from "../../services/auth/authService.js";
+import { loginService, registerService ,verifyEmailService ,resetPasswordService , forgotPasswordService} from "../../services/auth/authService.js";
 
 export const loginController = async (req, res) => {
   try {
@@ -66,6 +66,38 @@ export const verifyEmailController = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Lỗi máy chủ nội bộ.",
+    });
+  }
+};
+
+
+export const forgotPasswordController = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const result = await forgotPasswordService(email);
+    
+    return res.status(result.statusCode).json(result);
+  } catch (error) {
+    console.error("Forgot password controller error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi máy chủ, vui lòng thử lại sau",
+    });
+  }
+};
+
+// Reset Password Controller
+export const resetPasswordController = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    const result = await resetPasswordService(token, newPassword);
+    
+    return res.status(result.statusCode).json(result);
+  } catch (error) {
+    console.error("Reset password controller error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi máy chủ, vui lòng thử lại sau",
     });
   }
 };

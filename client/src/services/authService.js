@@ -95,3 +95,64 @@ export const verifyEmailService = async (token) => {
     console.error("API Error:", error.response?.data || error);
   }
 };
+
+
+export const forgotPassword = async (email) => {
+  try {
+    const response = await api.post("/auth/forgot-password", { email });
+  
+    if (!response) {
+      throw new Error("Response không hợp lệ");
+    }
+
+    const { success, message } = response;
+
+    if (!success) {
+      throw new Error(message || "Gửi email thất bại");
+    }
+
+    return {
+      success: true,
+      message: message || "Email đặt lại mật khẩu đã được gửi",
+    };
+  } catch (err) {
+    const errorMessage = 
+      err.response?.data?.message || 
+      err.message || 
+      "Gửi email thất bại. Vui lòng thử lại";
+
+    throw new Error(errorMessage);
+  }
+};
+
+// Reset mật khẩu - Đặt mật khẩu mới
+export const resetPassword = async (token, newPassword) => {
+  try {
+    const response = await api.post("/auth/reset-password", { 
+      token, 
+      newPassword 
+    });
+
+    if (!response) {
+      throw new Error("Response không hợp lệ");
+    }
+
+    const { success, message } = response;
+
+    if (!success) {
+      throw new Error(message || "Đặt lại mật khẩu thất bại");
+    }
+
+    return {
+      success: true,
+      message: message || "Đặt lại mật khẩu thành công",
+    };
+  } catch (err) {
+    const errorMessage = 
+      err.response?.data?.message || 
+      err.message || 
+      "Đặt lại mật khẩu thất bại. Vui lòng thử lại";
+
+    throw new Error(errorMessage);
+  }
+};

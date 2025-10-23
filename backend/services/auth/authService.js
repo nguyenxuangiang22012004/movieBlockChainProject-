@@ -241,3 +241,210 @@ export const verifyEmailService = async (token) => {
     };
   }
 };
+
+export const forgotPasswordService = async (email) => {
+  try {
+    // 1️⃣ Kiểm tra input
+    if (!email) {
+      return {
+        success: false,
+        statusCode: 400,
+        message: "Email là bắt buộc",
+      };
+    }
+
+    // 2️⃣ Tìm user theo email
+    const user = await User.findOne({ email });
+    
+    // 🔒 Bảo mật: Không tiết lộ email có tồn tại hay không
+    if (!user) {
+      return {
+        success: true,
+        statusCode: 200,
+        message: "Nếu email tồn tại, link đặt lại mật khẩu đã được gửi",
+      };
+    }
+
+    // 3️⃣ Kiểm tra email đã xác minh chưa
+    if (!user.isVerified) {
+      return {
+        success: false,
+        statusCode: 403,
+        message: "Vui lòng xác minh email trước khi đặt lại mật khẩu",
+      };
+    }
+
+    // 4️⃣ Tạo reset token (có thời hạn ngắn hơn - 1 giờ)
+    const resetToken = jwt.sign(
+      { 
+        userId: user._id, 
+        email: user.email,
+        type: 'password-reset' // Thêm type để phân biệt
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    // 5️⃣ Tạo URL reset password
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+
+    // 6️⃣ Soạn email
+    const mailOptions = {
+      from: `"Movie App" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Đặt lại mật khẩu tài khoản",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Đặt lại mật khẩu</h2>
+          <p>Xin chào <strong>${user.username}</strong>,</p>
+          <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
+          <p>Nhấn vào nút bên dưới để đặt lại mật khẩu:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" 
+              style="
+                display: inline-block;
+                background: #007bff;
+                color: #fff;
+                padding: 12px 30px;
+                border-radius: 6px;
+                text-decoration: none;
+                font-weight: bold;
+              ">
+              Đặt lại mật khẩu
+            </a>
+          </div>
+          <p style="color: #666; font-size: 14px;">
+            Hoặc copy link sau vào trình duyệt:<br>
+            <a href="${resetUrl}" style="color: #007bff; word-break: break-all;">
+              ${resetUrl}
+            </a>
+          </p>
+          <p style="color: #e74c3c; font-weight: bold;">
+            ⚠️ Link này sẽ hết hạn sau 1 giờ.
+          </p>
+          <p style="color: #666; font-size: 13px; margin-top: 30px;">
+            Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
+          </p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #999; font-size: 12px; text-align: center;">
+            © 2024 Movie App. All rights reserved.
+          </p>
+        </div>
+      `,
+    };
+
+    // 7️⃣ Gửi email
+    await transporter.sendMail(mailOptions);
+
+    // 8️⃣ Trả về response
+    return {
+      success: true,
+      statusCode: 200,
+      message: "Link đặt lại mật khẩu đã được gửi đến email của bạn",
+    };
+  } catch (error) {
+    console.error("Forgot password service error:", error);
+    return {
+      success: false,
+      statusCode: 500,
+      message: "Lỗi máy chủ. Vui lòng thử lại sau.",
+    };
+  }
+};
+
+// Reset Password Service - Cập nhật mật khẩu mới
+export const resetPasswordService = async (token, newPassword) => {
+  try {
+    // 1️⃣ Kiểm tra input
+    if (!token || !newPassword) {
+      return {
+        success: false,
+        statusCode: 400,
+        message: "Thiếu thông tin bắt buộc",
+      };
+    }
+
+    // 2️⃣ Validate password
+    if (newPassword.length < 6) {
+      return {
+        success: false,
+        statusCode: 400,
+        message: "Mật khẩu phải có ít nhất 6 ký tự",
+      };
+    }
+
+    // 3️⃣ Giải mã token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
+      // Kiểm tra type token
+      if (decoded.type !== 'password-reset') {
+        return {
+          success: false,
+          statusCode: 400,
+          message: "Token không hợp lệ",
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        statusCode: 400,
+        message: "Token không hợp lệ hoặc đã hết hạn",
+      };
+    }
+
+    // 4️⃣ Tìm user
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return {
+        success: false,
+        statusCode: 404,
+        message: "Người dùng không tồn tại",
+      };
+    }
+
+    // 5️⃣ Mã hóa mật khẩu mới
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // 6️⃣ Cập nhật mật khẩu
+    user.password = hashedPassword;
+    await user.save();
+
+    // 7️⃣ Gửi email thông báo (optional)
+    const mailOptions = {
+      from: `"Movie App" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: "Mật khẩu đã được thay đổi",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Mật khẩu đã được thay đổi</h2>
+          <p>Xin chào <strong>${user.username}</strong>,</p>
+          <p>Mật khẩu tài khoản của bạn đã được thay đổi thành công.</p>
+          <p>Nếu bạn không thực hiện thay đổi này, vui lòng liên hệ với chúng tôi ngay lập tức.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #999; font-size: 12px; text-align: center;">
+            © 2024 Movie App. All rights reserved.
+          </p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    // 8️⃣ Trả về response
+    return {
+      success: true,
+      statusCode: 200,
+      message: "Đặt lại mật khẩu thành công",
+    };
+  } catch (error) {
+    console.error("Reset password service error:", error);
+    return {
+      success: false,
+      statusCode: 500,
+      message: "Lỗi máy chủ. Vui lòng thử lại sau.",
+    };
+  }
+};

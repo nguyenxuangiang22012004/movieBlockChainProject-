@@ -15,6 +15,7 @@ import ActorPage from "../pages/ActorPage";
 import ProfilePage from "../pages/ProfilePage";
 import NotFoundPage from "../pages/404/NotFoundPage";
 import VerifyEmail from "../pages/VerifyEmail";
+import ResetPasswordPage from "../pages/ResetPasswordPage";
 function App() {
   return (
     <BrowserRouter>
@@ -34,6 +35,7 @@ function App() {
           <Route path="/actor/:actorId" element={<ActorPage />} />
           <Route path="/profile" element={<ProfilePage />} /> 
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

@@ -1,15 +1,30 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { forgotPassword } from '../services/authService';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { resetPassword } from '../services/authService';
 
-function ForgotPasswordPage() {
+function ResetPasswordPage() {
   const signBgRef = useRef(null);
-  const [email, setEmail] = useState('');
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
+
+  const [formData, setFormData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [agreedToPolicy, setAgreedToPolicy] = useState(false);
 
   useEffect(() => {
+    // Kiểm tra token
+    if (!token) {
+      setMessage({ 
+        type: 'error', 
+        text: 'Link đặt lại mật khẩu không hợp lệ' 
+      });
+    }
+
+    // Set background
     if (signBgRef.current && signBgRef.current.getAttribute('data-bg')) {
       const bgUrl = signBgRef.current.getAttribute('data-bg');
       signBgRef.current.style.background = `url(${bgUrl})`;
@@ -17,19 +32,36 @@ function ForgotPasswordPage() {
       signBgRef.current.style.backgroundRepeat = 'no-repeat';
       signBgRef.current.style.backgroundSize = 'cover';
     }
-  }, []);
+  }, [token]);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validate
-    if (!email.trim()) {
-      setMessage({ type: 'error', text: 'Vui lòng nhập email' });
+    if (!formData.newPassword || !formData.confirmPassword) {
+      setMessage({ type: 'error', text: 'Vui lòng điền đầy đủ thông tin' });
       return;
     }
 
-    if (!agreedToPolicy) {
-      setMessage({ type: 'error', text: 'Vui lòng đồng ý với Chính sách Bảo mật' });
+    if (formData.newPassword.length < 6) {
+      setMessage({ type: 'error', text: 'Mật khẩu phải có ít nhất 6 ký tự' });
+      return;
+    }
+
+    if (formData.newPassword !== formData.confirmPassword) {
+      setMessage({ type: 'error', text: 'Mật khẩu xác nhận không khớp' });
+      return;
+    }
+
+    if (!token) {
+      setMessage({ type: 'error', text: 'Token không hợp lệ' });
       return;
     }
 
@@ -37,15 +69,18 @@ function ForgotPasswordPage() {
     setMessage({ type: '', text: '' });
 
     try {
-      const result = await forgotPassword(email);
+      const result = await resetPassword(token, formData.newPassword);
       
       if (result.success) {
         setMessage({ 
           type: 'success', 
-          text: 'Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn.' 
+          text: 'Đặt lại mật khẩu thành công! Đang chuyển hướng...' 
         });
-        setEmail('');
-        setAgreedToPolicy(false);
+        
+        // Redirect sau 2 giây
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
       } else {
         setMessage({ type: 'error', text: result.message });
       }
@@ -65,11 +100,14 @@ function ForgotPasswordPage() {
         <div className="row">
           <div className="col-12">
             <div className="sign__content">
-              {/* forgot form */}
               <form onSubmit={handleSubmit} className="sign__form">
                 <Link to="/" className="sign__logo">
                   <img src="/img/logo.svg" alt="" />
                 </Link>
+
+                <h3 style={{ color: '#fff', marginBottom: '20px', textAlign: 'center' }}>
+                  Đặt lại mật khẩu
+                </h3>
 
                 {/* Message display */}
                 {message.text && (
@@ -90,47 +128,42 @@ function ForgotPasswordPage() {
 
                 <div className="sign__group">
                   <input 
-                    type="email" 
+                    type="password" 
                     className="sign__input" 
-                    placeholder="Email" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
+                    placeholder="Mật khẩu mới" 
+                    name="newPassword"
+                    value={formData.newPassword}
+                    onChange={handleChange}
+                    disabled={loading || !token}
                     required
                   />
                 </div>
 
-                <div className="sign__group sign__group--checkbox">
+                <div className="sign__group">
                   <input 
-                    id="remember" 
-                    name="remember" 
-                    type="checkbox" 
-                    checked={agreedToPolicy}
-                    onChange={(e) => setAgreedToPolicy(e.target.checked)}
-                    disabled={loading}
+                    type="password" 
+                    className="sign__input" 
+                    placeholder="Xác nhận mật khẩu mới" 
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    disabled={loading || !token}
+                    required
                   />
-                  <label htmlFor="remember">
-                    I agree to the <Link to="/privacy">Privacy Policy</Link>
-                  </label>
                 </div>
 
                 <button 
                   className="sign__btn" 
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !token}
                 >
-                  {loading ? 'Đang gửi...' : 'Send'}
+                  {loading ? 'Đang xử lý...' : 'Reset Password'}
                 </button>
-
-                <span className="sign__text">
-                  We will send a password reset link to your Email
-                </span>
 
                 <span className="sign__text">
                   <Link to="/login">Back to Sign In</Link>
                 </span>
               </form>
-              {/* end forgot form */}
             </div>
           </div>
         </div>
@@ -139,4 +172,4 @@ function ForgotPasswordPage() {
   );
 }
 
-export default ForgotPasswordPage;
+export default ResetPasswordPage;
