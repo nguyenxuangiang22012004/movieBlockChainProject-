@@ -57,6 +57,7 @@ const userSchema = new Schema(
         item_type: { type: String, required: true, enum: ["Movie", "TVSeries"] },
       },
     ],
+    isVerified: { type: Boolean, default: false },
     status: {
       type: String,
       enum: ["approved", "banned"],

@@ -44,41 +44,22 @@ export const register = async (userData) => {
   }
 };
 
-// Lấy thông tin user hiện tại
-export const getProfile = async () => {
-  try {
-    const res = await api.get("/auth/profile");
-    
-    // Cập nhật thông tin user trong localStorage
-    if (res.data.success && res.data.user) {
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-    }
-    
-    return res.data;
-  } catch (err) {
-    throw err.response?.data || { message: "Lấy thông tin thất bại" };
-  }
-};
-
 // Đăng xuất
 export const logout = () => {
   localStorage.removeItem("auth_token");
   localStorage.removeItem("user");
 };
 
-// Kiểm tra đã đăng nhập chưa
-export const isAuthenticated = () => {
-  return !!localStorage.getItem("auth_token");
-};
+export const verifyEmailService = async (token) => {
+  try {
+    const res = await api.get(`/auth/verify-email?token=${token}`);
 
-// Lấy thông tin user từ localStorage
-export const getCurrentUser = () => {
-  const userStr = localStorage.getItem("user");
-  return userStr ? JSON.parse(userStr) : null;
-};
-
-// Kiểm tra role user
-export const checkUserRole = () => {
-  const user = getCurrentUser();
-  return user && user.role === "user";
+    if (res.data.success) {
+      window.location.href = `${import.meta.env.VITE_CLIENT_URL}/login?verified=true`;
+    } else {
+      console.error(res.data.message);
+    }
+  } catch (error) {
+    console.error("API Error:", error.response?.data || error);
+  }
 };

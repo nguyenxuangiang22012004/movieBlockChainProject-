@@ -13,7 +13,8 @@ import FaqPage from "../pages/FaqPage";
 import AboutPage from "../pages/AboutPage";
 import ActorPage from "../pages/ActorPage";
 import ProfilePage from "../pages/ProfilePage";
-import NotFoundPage from "../pages/404/NotFoundPage"
+import NotFoundPage from "../pages/404/NotFoundPage";
+import VerifyEmail from "../pages/VerifyEmail";
 function App() {
   return (
     <BrowserRouter>
@@ -32,6 +33,7 @@ function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/actor/:actorId" element={<ActorPage />} />
           <Route path="/profile" element={<ProfilePage />} /> 
+          <Route path="/verify-email" element={<VerifyEmail />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

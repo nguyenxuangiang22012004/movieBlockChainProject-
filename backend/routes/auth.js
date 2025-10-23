@@ -3,8 +3,9 @@ import {
   loginController, 
   registerController, 
   getProfileController,
-  logoutController 
+  logoutController,verifyEmailController 
 } from "../controllers/auth/authController.js";
+
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -15,4 +16,5 @@ router.post("/auth/register", registerController);
 router.get("/auth/profile", authMiddleware, getProfileController);
 router.post("/auth/logout", authMiddleware, logoutController);
 
+router.get("/auth/verify-email", verifyEmailController);
 export default router;
