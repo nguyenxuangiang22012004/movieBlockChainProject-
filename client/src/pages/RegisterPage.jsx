@@ -19,6 +19,7 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     if (signBgRef.current && signBgRef.current.getAttribute('data-bg')) {
@@ -37,7 +38,7 @@ function RegisterPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    
+
     // Xóa lỗi khi user bắt đầu nhập
     if (error) setError('');
     if (fieldErrors[name]) {
@@ -88,17 +89,19 @@ function RegisterPage() {
   // Xử lý submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate form
+
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       setError('Vui lòng kiểm tra lại thông tin');
       return;
     }
+
     setLoading(true);
     setError('');
     setFieldErrors({});
+    setSuccessMessage('');
+
     try {
       const userData = {
         username: formData.username.trim(),
@@ -109,11 +112,20 @@ function RegisterPage() {
       const response = await register(userData);
 
       if (response) {
-        navigate('/');
+        // ✅ Không navigate nữa
+        setSuccessMessage('🎉 Đăng ký thành công! Vui lòng kiểm tra email để xác minh tài khoản.');
+        setFormData({
+          username: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          agreePolicy: false
+        });
+      } else {
+        setError(response?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
       }
     } catch (err) {
-      // Hiển thị lỗi từ server
-      setError(err.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      setError(err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -145,11 +157,25 @@ function RegisterPage() {
                   </div>
                 )}
 
+                {successMessage && (
+                  <div className="sign__success" style={{
+                    color: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    marginBottom: '20px',
+                    fontSize: '14px',
+                    textAlign: 'center'
+                  }}>
+                    {successMessage}
+                  </div>
+                )}
+
                 <div className="sign__group">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className={`sign__input ${fieldErrors.username ? 'error' : ''}`}
-                    placeholder="Username *" 
+                    placeholder="Username *"
                     name="username"
                     value={formData.username}
                     onChange={handleChange}
@@ -163,10 +189,10 @@ function RegisterPage() {
                 </div>
 
                 <div className="sign__group">
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     className={`sign__input ${fieldErrors.email ? 'error' : ''}`}
-                    placeholder="Email *" 
+                    placeholder="Email *"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
@@ -180,10 +206,10 @@ function RegisterPage() {
                 </div>
 
                 <div className="sign__group">
-                  <input 
-                    type="password" 
+                  <input
+                    type="password"
                     className={`sign__input ${fieldErrors.password ? 'error' : ''}`}
-                    placeholder="Password *" 
+                    placeholder="Password *"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
@@ -197,10 +223,10 @@ function RegisterPage() {
                 </div>
 
                 <div className="sign__group">
-                  <input 
-                    type="password" 
+                  <input
+                    type="password"
                     className={`sign__input ${fieldErrors.confirmPassword ? 'error' : ''}`}
-                    placeholder="Confirm Password *" 
+                    placeholder="Confirm Password *"
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
@@ -214,9 +240,9 @@ function RegisterPage() {
                 </div>
 
                 <div className="sign__group sign__group--checkbox">
-                  <input 
-                    id="agreePolicy" 
-                    name="agreePolicy" 
+                  <input
+                    id="agreePolicy"
+                    name="agreePolicy"
                     type="checkbox"
                     checked={formData.agreePolicy}
                     onChange={handleChange}
@@ -232,8 +258,8 @@ function RegisterPage() {
                   )}
                 </div>
 
-                <button 
-                  className="sign__btn" 
+                <button
+                  className="sign__btn"
                   type="submit"
                   disabled={loading}
                   style={{
@@ -247,6 +273,7 @@ function RegisterPage() {
                 <span className="sign__text">
                   Already have an account? <Link to="/login">Sign in!</Link>
                 </span>
+
               </form>
             </div>
           </div>

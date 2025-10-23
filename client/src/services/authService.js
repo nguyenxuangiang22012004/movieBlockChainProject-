@@ -32,17 +32,12 @@ export const login = async (email, password) => {
 export const register = async (userData) => {
   try {
     const { data } = await api.post("/auth/register", userData);
-
-    if (data.success) {
-      localStorage.setItem("auth_token", data.data.token);
-      localStorage.setItem("user", JSON.stringify(data.data.user));
-    }
-
     return data;
   } catch (err) {
     throw err.response?.data || { message: "Đăng ký thất bại" };
   }
 };
+
 
 // Đăng xuất
 export const logout = () => {
