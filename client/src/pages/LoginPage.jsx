@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { login } from '../services/authService';
 
 function LoginPage() {
   const signBgRef = useRef(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // State cho form
   const [formData, setFormData] = useState({
@@ -16,8 +17,10 @@ function LoginPage() {
   // State cho loading và error
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
+    // Set background
     if (signBgRef.current && signBgRef.current.getAttribute('data-bg')) {
       const bgUrl = signBgRef.current.getAttribute('data-bg');
       signBgRef.current.style.background = `url(${bgUrl})`;
@@ -25,7 +28,13 @@ function LoginPage() {
       signBgRef.current.style.backgroundRepeat = 'no-repeat';
       signBgRef.current.style.backgroundSize = 'cover';
     }
-  }, []);
+
+    // Kiểm tra verified param từ URL
+    const verified = searchParams.get('verified');
+    if (verified === 'true') {
+      setSuccessMessage('Email đã được xác minh thành công! Bạn có thể đăng nhập.');
+    }
+  }, [searchParams]);
 
   // Xử lý thay đổi input
   const handleChange = (e) => {
@@ -34,8 +43,37 @@ function LoginPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    
     // Xóa lỗi khi user bắt đầu nhập
     if (error) setError('');
+    if (successMessage) setSuccessMessage('');
+  };
+
+  // Validate form
+  const validateForm = () => {
+    if (!formData.email.trim()) {
+      setError('Vui lòng nhập email');
+      return false;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Email không đúng định dạng');
+      return false;
+    }
+
+    if (!formData.password) {
+      setError('Vui lòng nhập mật khẩu');
+      return false;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Mật khẩu phải có ít nhất 6 ký tự');
+      return false;
+    }
+
+    return true;
   };
 
   // Xử lý submit form
@@ -43,20 +81,25 @@ function LoginPage() {
     e.preventDefault();
     
     // Validate
-    if (!formData.email || !formData.password) {
-      setError('Vui lòng nhập đầy đủ email và mật khẩu');
+    if (!validateForm()) {
       return;
     }
 
     setLoading(true);
     setError('');
+    setSuccessMessage('');
 
     try {
       const response = await login(formData.email, formData.password);
-      
+
       if (response.success) {
-        // Đăng nhập thành công - chuyển về trang chủ
-        navigate('/');
+        // Đăng nhập thành công
+        setSuccessMessage('Đăng nhập thành công! Đang chuyển hướng...');
+        
+        // Chuyển về trang chủ sau 1 giây
+        setTimeout(() => {
+          navigate('/', { replace: true });
+        }, 1000);
       }
     } catch (err) {
       // Hiển thị lỗi
@@ -74,19 +117,36 @@ function LoginPage() {
             <div className="sign__content">
               <form onSubmit={handleSubmit} className="sign__form">
                 <Link to="/" className="sign__logo">
-                  <img src="/img/logo.svg" alt="" />
+                  <img src="/img/logo.svg" alt="Logo" />
                 </Link>
+
+                {/* Hiển thị thông báo thành công */}
+                {successMessage && (
+                  <div className="sign__message sign__message--success" style={{
+                    color: '#00d451',
+                    backgroundColor: 'rgba(0, 212, 81, 0.1)',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    marginBottom: '20px',
+                    fontSize: '14px',
+                    textAlign: 'center',
+                    border: '1px solid rgba(0, 212, 81, 0.2)'
+                  }}>
+                    {successMessage}
+                  </div>
+                )}
 
                 {/* Hiển thị lỗi */}
                 {error && (
-                  <div className="sign__error" style={{
+                  <div className="sign__message sign__message--error" style={{
                     color: '#ff5151',
                     backgroundColor: 'rgba(255, 81, 81, 0.1)',
                     padding: '12px',
                     borderRadius: '8px',
                     marginBottom: '20px',
                     fontSize: '14px',
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    border: '1px solid rgba(255, 81, 81, 0.2)'
                   }}>
                     {error}
                   </div>
@@ -101,7 +161,7 @@ function LoginPage() {
                     value={formData.email}
                     onChange={handleChange}
                     disabled={loading}
-                    required
+                    autoComplete="email"
                   />
                 </div>
 
@@ -109,12 +169,12 @@ function LoginPage() {
                   <input 
                     type="password" 
                     className="sign__input" 
-                    placeholder="Password"
+                    placeholder="Mật khẩu"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
                     disabled={loading}
-                    required
+                    autoComplete="current-password"
                   />
                 </div>
 
@@ -127,7 +187,7 @@ function LoginPage() {
                     onChange={handleChange}
                     disabled={loading}
                   />
-                  <label htmlFor="remember">Remember Me</label>
+                  <label htmlFor="remember">Ghi nhớ đăng nhập</label>
                 </div>
 
                 <button 
@@ -136,31 +196,60 @@ function LoginPage() {
                   disabled={loading}
                   style={{
                     opacity: loading ? 0.7 : 1,
-                    cursor: loading ? 'not-allowed' : 'pointer'
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    transition: 'opacity 0.3s ease'
                   }}
                 >
-                  {loading ? 'Đang đăng nhập...' : 'Sign in'}
+                  {loading ? (
+                    <>
+                      <span style={{ marginRight: '8px' }}>⏳</span>
+                      Đang đăng nhập...
+                    </>
+                  ) : (
+                    'Đăng nhập'
+                  )}
                 </button>
 
-                <span className="sign__delimiter">or</span>
+                <span className="sign__delimiter">hoặc</span>
 
                 <div className="sign__social">
-                  <a className="fb" href="#" onClick={(e) => e.preventDefault()}>
-                    Sign in with<i className="ti ti-brand-facebook"></i>
+                  <a 
+                    className="fb" 
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setError('Tính năng đang phát triển');
+                    }}
+                  >
+                    Đăng nhập với <i className="ti ti-brand-facebook"></i>
                   </a>
-                  <a className="tw" href="#" onClick={(e) => e.preventDefault()}>
-                    Sign in with<i className="ti ti-brand-x"></i>
+                  <a 
+                    className="tw" 
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setError('Tính năng đang phát triển');
+                    }}
+                  >
+                    Đăng nhập với <i className="ti ti-brand-x"></i>
                   </a>
-                  <a className="gl" href="#" onClick={(e) => e.preventDefault()}>
-                    Sign in with<i className="ti ti-brand-google"></i>
+                  <a 
+                    className="gl" 
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setError('Tính năng đang phát triển');
+                    }}
+                  >
+                    Đăng nhập với <i className="ti ti-brand-google"></i>
                   </a>
                 </div>
 
                 <span className="sign__text">
-                  Don't have an account? <Link to="/register">Sign up!</Link>
+                  Chưa có tài khoản? <Link to="/register">Đăng ký ngay!</Link>
                 </span>
                 <span className="sign__text">
-                  <Link to="/forgot">Forgot password?</Link>
+                  <Link to="/forgot">Quên mật khẩu?</Link>
                 </span>
               </form>
             </div>

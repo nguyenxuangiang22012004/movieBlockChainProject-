@@ -3,28 +3,53 @@ import api from "../config/axios";
 // Đăng nhập
 export const login = async (email, password) => {
   try {
-    const res = await api.post("/auth/login", { email, password });
-    
-    if (res.data.success && res.data.token) {
-      // Kiểm tra role - chỉ cho phép user đăng nhập
-      if (res.data.user.role !== "user") {
-        throw {
-          message: "Bạn không có quyền truy cập vào trang này"
-        };
-      }
+    const response = await api.post("/auth/login", { email, password });
 
-      // Lưu token và thông tin user vào localStorage
-      localStorage.setItem("auth_token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+    // Kiểm tra response có đúng cấu trúc không
+    if (!response.data) {
+      throw new Error("Response không hợp lệ");
     }
-    
-    return res.data;
+
+    const { success, data, message } = response;
+
+    if (!success) {
+      throw new Error(message || "Đăng nhập thất bại");
+    }
+
+    // Kiểm tra có token và user không
+    if (!data?.token || !data?.user) {
+      throw new Error("Dữ liệu đăng nhập không đầy đủ");
+    }
+
+    // Kiểm tra role - chỉ cho phép user role
+    if (data.user.role !== "user") {
+      throw new Error("Bạn không có quyền truy cập vào trang này");
+    }
+
+    // Lưu token và thông tin user vào localStorage
+    localStorage.setItem("auth_token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+    return {
+      success: true,
+      message: message || "Đăng nhập thành công",
+      data: {
+        token: data.token,
+        user: data.user,
+      },
+    };
   } catch (err) {
     // Xóa thông tin cũ nếu đăng nhập thất bại
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user");
-    
-    throw err.response?.data || err || { message: "Đăng nhập thất bại" };
+
+    // Xử lý error message
+    const errorMessage = 
+      err.response?.data?.message || 
+      err.message || 
+      "Đăng nhập thất bại. Vui lòng thử lại";
+
+    throw new Error(errorMessage);
   }
 };
 
@@ -40,10 +65,22 @@ export const register = async (userData) => {
 
 
 // Đăng xuất
-export const logout = () => {
-  localStorage.removeItem("auth_token");
-  localStorage.removeItem("user");
+export const logout = async () => {
+  try {
+    // Gọi API logout để xử lý ở backend (nếu cần)
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      await api.post("/auth/logout");
+    }
+  } catch (err) {
+    console.error("Logout error:", err);
+  } finally {
+    // Luôn xóa token và user info khỏi localStorage
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user");
+  }
 };
+
 
 export const verifyEmailService = async (token) => {
   try {

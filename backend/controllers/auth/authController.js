@@ -1,15 +1,21 @@
 import { loginService, registerService ,verifyEmailService} from "../../services/auth/authService.js";
 
 export const loginController = async (req, res) => {
-  const { email, password } = req.body;
-  const result = await loginService(email, password);
-  if (result.success) {
-    res.json(result);
-  } else {
-    res.status(401).json(result);
+  try {
+    const { email, password } = req.body;
+    
+    const result = await loginService(email, password);
+    
+    return res.status(result.statusCode).json(result);
+  } catch (error) {
+    console.error("Login Controller Error:", error);
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: "Lỗi máy chủ, vui lòng thử lại sau",
+    });
   }
 };
-
 
 export const registerController = async (req, res) => {
   try {

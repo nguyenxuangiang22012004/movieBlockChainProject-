@@ -9,31 +9,45 @@ export const loginService = async (email, password) => {
     if (!email || !password) {
       return {
         success: false,
-        message: "Email và password là bắt buộc",
+        statusCode: 400,
+        message: "Email và mật khẩu là bắt buộc",
       };
     }
 
+    // Tìm user theo email
     const user = await User.findOne({ email });
     if (!user) {
       return {
         success: false,
+        statusCode: 401,
         message: "Email hoặc mật khẩu không đúng",
       };
     }
 
-    // Kiểm tra trạng thái user
+    // Kiểm tra email đã xác minh chưa
+    if (!user.isVerified) {
+      return {
+        success: false,
+        statusCode: 403,
+        message: "Vui lòng xác minh email trước khi đăng nhập",
+      };
+    }
+
+    // Kiểm tra trạng thái tài khoản
     if (user.status === "banned") {
       return {
         success: false,
+        statusCode: 403,
         message: "Tài khoản của bạn đã bị khóa",
       };
     }
 
-    // So sánh password
+    // So sánh mật khẩu
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return {
         success: false,
+        statusCode: 401,
         message: "Email hoặc mật khẩu không đúng",
       };
     }
@@ -46,31 +60,38 @@ export const loginService = async (email, password) => {
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
     );
 
-    // Trả về thông tin user (không bao gồm password)
+    // Chuẩn bị dữ liệu user trả về (loại bỏ các thông tin nhạy cảm)
     const userResponse = {
       id: user._id,
       username: user.username,
       email: user.email,
-      address: user.address,
-      full_name: user.full_name,
-      avatar_url: user.avatar_url,
+      address: user.address || "",
+      full_name: user.full_name || "",
+      avatar_url: user.avatar_url || "",
       role: user.role,
-      subscriptionCache: user.subscriptionCache,
+      status: user.status,
+      isVerified: user.isVerified,
+      subscriptionCache: user.subscriptionCache || null,
+      createdAt: user.createdAt,
     };
 
     return {
       success: true,
+      statusCode: 200,
       message: "Đăng nhập thành công",
-      token,
-      user: userResponse,
+      data: {
+        token,
+        user: userResponse,
+      },
     };
   } catch (error) {
     console.error("Login service error:", error);
     return {
       success: false,
+      statusCode: 500,
       message: "Đã xảy ra lỗi trong quá trình đăng nhập",
     };
   }
