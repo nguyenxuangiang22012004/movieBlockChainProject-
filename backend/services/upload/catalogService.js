@@ -8,7 +8,6 @@ export const getCatalogByCategory = async (type, page = 1, limit = 10) => {
     let tvSeries = [];
     let total = 0;
 
-    console.log("🎬 getCatalog called with:", { type, page, limit }); 
 
     // ✅ Nếu có type, tạo regex để không phân biệt hoa thường
     const typeRegex = type ? new RegExp(`^${type}$`, "i") : null;

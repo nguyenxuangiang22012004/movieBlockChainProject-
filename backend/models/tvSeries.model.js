@@ -10,7 +10,7 @@ const videoSourceSchema = new Schema({
     '1080p': String,
     '720p': String,
     '480p': String,
-    'hls': String, // master.m3u8
+    'hls': String, 
   },
   subtitles: [
     {

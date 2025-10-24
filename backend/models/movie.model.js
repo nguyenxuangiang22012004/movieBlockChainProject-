@@ -57,7 +57,7 @@ const movieSchema = new Schema({
     actors: [String],   // THAY ĐỔI: Chấp nhận một mảng các chuỗi tên diễn viên
     // ---- THAY ĐỔI KẾT THÚC TẠI ĐÂY ----
     country: String,
-    rating: {
+    imdb_rating: {
         type: Number,
         default: 0,
     },

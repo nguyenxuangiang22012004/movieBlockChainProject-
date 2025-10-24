@@ -21,19 +21,29 @@ function VideoPlayer({
 
     // --- Nếu là phim lẻ ---
     if (currentMovie.category?.toLowerCase() === "movie") {
-      const sources = currentMovie.video_source?.sources || {};
-      const source =
-        sources[selectedQuality] || Object.values(sources)[0];
+      let sources = {};
 
-      // Chuẩn hóa về định dạng Plyr hiểu được
-      if (source) {
+      // ✅ Tự động nhận dạng cấu trúc video_source
+      if (currentMovie.video_source) {
+        if (currentMovie.video_source.sources) {
+          sources = currentMovie.video_source.sources;
+        } else if (typeof currentMovie.video_source === "object") {
+          // { "480p": "CID1", "720p": "CID2" }
+          sources = currentMovie.video_source;
+        } else if (typeof currentMovie.video_source === "string") {
+          // "Qm123..." (chỉ 1 CID)
+          sources = { default: currentMovie.video_source };
+        }
+      }
+
+      // ✅ Nếu có nhiều độ phân giải → Plyr sẽ tự tạo dropdown Quality
+      if (Object.keys(sources).length > 0) {
         return {
           type: "ipfs",
-          sources: {
-            [selectedQuality || "default"]: source,
-          },
+          sources,
         };
       }
+
       return null;
     }
 
