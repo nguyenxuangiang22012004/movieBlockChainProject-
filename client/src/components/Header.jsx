@@ -15,7 +15,7 @@ function Header() {
   const toggleSearch = () => {
     setIsSearchActive(!isSearchActive);
   };
-  
+
   useEffect(() => {
     const closeMenu = () => setIsNavActive(false);
     if (isNavActive) {
@@ -55,10 +55,15 @@ function Header() {
               {/* header nav */}
               <ul className={`header__nav ${isNavActive ? 'header__nav--active' : ''}`}>
                 <li className="header__nav-item">
-                  <Link to="/details/1" className="header__nav-link">Movie</Link>
+                  <Link to="/catalog?type=movie" className="header__nav-link">
+                    Movie
+                  </Link>
                 </li>
+
                 <li className="header__nav-item">
-                  <Link to="/details/1" className="header__nav-link">TV Series</Link>
+                  <Link to="/catalog?type=tvseries" className="header__nav-link">
+                    TV Series
+                  </Link>
                 </li>
                 {/* dropdown */}
                 <li className="header__nav-item">

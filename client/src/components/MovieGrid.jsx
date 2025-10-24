@@ -42,8 +42,8 @@ function MovieGrid() {
               key={movie.id || movie._id}
               movie={{
                 id: movie.id || movie._id,
-                cover: movie.cover_image_url,
-                rate: movie.imdb_rating || movie.rating || 0,
+                cover_image_url: movie.cover_image_url,
+                rating: movie.imdb_rating || movie.rating || 0,
                 title: movie.title,
                 categories: movie.genres || [],
               }}

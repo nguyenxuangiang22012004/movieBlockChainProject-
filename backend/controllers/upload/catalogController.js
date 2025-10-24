@@ -1,5 +1,17 @@
 import * as catalogService from "../../services/upload/catalogService.js";
 
+export const getCatalogByCategory = async (req, res) => {
+  try {
+    const { type = "all", page = 1, limit = 10 } = req.query;
+    const result = await catalogService.getCatalogByCategory(type, Number(page), Number(limit));
+
+    if (result.success) res.json(result);
+    else res.status(500).json({ message: result.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getCatalog = async (req, res) => {
   const result = await catalogService.getCatalog();
   if (result.success) {
@@ -13,7 +25,7 @@ export const getCatalogItemById = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await catalogService.getCatalogItemById(id);
-    
+
     if (result.success) {
       // ✅ FIX: Trả về cả object result thay vì chỉ result.data
       res.status(200).json(result);
@@ -50,7 +62,7 @@ export const updateCatalogItem = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
     const result = await catalogService.updateCatalogItem(id, updateData);
-    
+
     if (result.success) {
       // ✅ Có thể trả về result hoặc result.data, tùy frontend xử lý
       res.status(200).json(result);
@@ -66,7 +78,7 @@ export const deleteCatalogItem = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await catalogService.deleteCatalogItem(id);
-    
+
     if (result.success) {
       res.status(200).json(result);
     } else {
@@ -76,3 +88,5 @@ export const deleteCatalogItem = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
