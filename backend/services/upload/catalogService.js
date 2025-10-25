@@ -1,95 +1,98 @@
 import Movie from "../../models/movie.model.js";
 import TVSeries from "../../models/tvSeries.model.js";
 
-export const getCatalogByCategory = async (type, page = 1, limit = 10) => {
+export const getCatalogByCategory = async (type = "all", genre = "", page = 1, limit = 10) => {
   try {
     const skip = (page - 1) * limit;
+
     let movies = [];
     let tvSeries = [];
     let total = 0;
 
+    // Regex để không phân biệt hoa thường (dành cho type)
+    const typeRegex = type && type !== "all" ? new RegExp(`^${type}$`, "i") : null;
 
-    // ✅ Nếu có type, tạo regex để không phân biệt hoa thường
-    const typeRegex = type ? new RegExp(`^${type}$`, "i") : null;
+    // ==== MOVIE ====
+    if (!typeRegex || typeRegex.test("movie")) {
+      const movieQuery = {};
 
-    // ✅ Nếu type = movie → chỉ lấy từ Movie
-    if (!type || typeRegex.test("movie")) {
-      const movieQuery = type ? { category: typeRegex } : {};
+      // Lọc theo thể loại (match chính xác, không phân biệt hoa thường)
+      if (genre) {
+        movieQuery.genres = { $regex: `^${genre}$`, $options: "i" };
+      }
+
       const movieCount = await Movie.countDocuments(movieQuery);
       const movieData = await Movie.find(movieQuery)
-        .skip(skip)
-        .limit(Number(limit))
         .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
         .lean();
 
       total += movieCount;
-      movies = movieData;
+      movies = movieData.map((m) => ({
+        id: m._id,
+        title: m.title,
+        description: m.description,
+        cover_image_url: m.cover_image_url,
+        background_image_url: m.background_image_url,
+        release_year: m.release_year,
+        running_time: m.running_time,
+        genres: m.genres,
+        director: m.director,
+        actors: m.actors,
+        country: m.country,
+        age_rating: m.age_rating,
+        quality: m.quality,
+        imdb_rating: m.imdb_rating,
+        views: m.views,
+        category: "movie",
+        status: m.status,
+        createdAt: m.createdAt,
+      }));
     }
 
-    // ✅ Nếu type = tvseries → chỉ lấy từ TVSeries
-    if (!type || typeRegex.test("tvseries")) {
-      const tvQuery = type ? { category: typeRegex } : {};
+    // ==== TV SERIES ====
+    if (!typeRegex || typeRegex.test("tvseries")) {
+      const tvQuery = {};
+
+      if (genre) {
+        tvQuery.genres = { $regex: `^${genre}$`, $options: "i" };
+      }
+
       const tvCount = await TVSeries.countDocuments(tvQuery);
       const tvData = await TVSeries.find(tvQuery)
-        .skip(skip)
-        .limit(Number(limit))
         .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
         .lean();
 
       total += tvCount;
-      tvSeries = tvData;
+      tvSeries = tvData.map((s) => ({
+        id: s._id,
+        title: s.title,
+        description: s.description,
+        cover_image_url: s.cover_image_url,
+        background_image_url: s.background_image_url,
+        release_year: s.release_year,
+        running_time: s.running_time,
+        genres: s.genres,
+        directors: s.directors,
+        actors: s.actors,
+        seasons: s.seasons?.length || 0,
+        age_rating: s.age_rating,
+        category: "tvseries",
+        status: s.status,
+        createdAt: s.createdAt,
+      }));
     }
 
-    // ✅ Format dữ liệu trả về
-    const formattedMovies = movies.map((m) => ({
-      id: m._id,
-      title: m.title,
-      description: m.description,
-      cover_image_url: m.cover_image_url,
-      background_image_url: m.background_image_url,
-      release_year: m.release_year,
-      running_time: m.running_time,
-      age_rating: m.age_rating,
-      quality: m.quality,
-      genres: m.genres,
-      actors: m.actors,
-      director: m.director,
-      country: m.country,
-      video_source: m.video_source,
-      imdb_rating: m.imdb_rating || 0,
-      category: "movie",
-      views: m.views || 0,
-      status: m.status,
-      createdAt: m.createdAt,
-    }));
-
-    const formattedSeries = tvSeries.map((s) => ({
-      id: s._id,
-      title: s.title,
-      description: s.description,
-      cover_image_url: s.cover_image_url,
-      background_image_url: s.background_image_url,
-      release_year: s.release_year,
-      running_time: s.running_time,
-      genres: s.genres,
-      directors: s.directors,
-      actors: s.actors,
-      seasons: s.seasons,
-      age_rating: s.age_rating,
-      rating: 0,
-      category: "tvseries",
-      views: 0,
-      status: s.status,
-      createdAt: s.createdAt,
-    }));
-
-    // ✅ Gộp dữ liệu tuỳ theo type
+    // ==== GỘP DỮ LIỆU ====
     let data = [];
-    if (typeRegex?.test("movie")) data = formattedMovies;
-    else if (typeRegex?.test("tvseries")) data = formattedSeries;
-    else data = [...formattedMovies, ...formattedSeries];
+    if (typeRegex?.test("movie")) data = movies;
+    else if (typeRegex?.test("tvseries")) data = tvSeries;
+    else data = [...movies, ...tvSeries];
 
-    // ✅ Trả về kết quả
+    // ==== TRẢ KẾT QUẢ ====
     return {
       success: true,
       data,
@@ -101,7 +104,7 @@ export const getCatalogByCategory = async (type, page = 1, limit = 10) => {
       },
     };
   } catch (error) {
-    console.error("❌ getCatalog error:", error);
+    console.error("❌ getCatalogByCategory error:", error);
     return { success: false, message: error.message };
   }
 };

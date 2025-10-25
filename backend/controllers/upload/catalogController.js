@@ -1,17 +1,22 @@
 import * as catalogService from "../../services/upload/catalogService.js";
 
+
 export const getCatalogByCategory = async (req, res) => {
   try {
-    const { type = "all", page = 1, limit = 10 } = req.query;
-    const result = await catalogService.getCatalogByCategory(type, Number(page), Number(limit));
+    const { type = "all", genre = "", page = 1, limit = 10 } = req.query;
 
-    if (result.success) res.json(result);
-    else res.status(500).json({ message: result.message });
+    const result = await catalogService.getCatalogByCategory(type, genre, Number(page), Number(limit));
+
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(500).json({ success: false, message: result.message });
+    }
   } catch (error) {
+    console.error("❌ getCatalogByCategory controller error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 export const getCatalog = async (req, res) => {
   const result = await catalogService.getCatalog();
   if (result.success) {

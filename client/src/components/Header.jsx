@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { logout } from '../services/authService'; // Import logout function
-
+import { GENRES } from "../constants/genres";
 function Header() {
   const [isNavActive, setIsNavActive] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -67,10 +67,13 @@ function Header() {
                 </li>
                 {/* dropdown */}
                 <li className="header__nav-item">
-                  <a className="header__nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Catalog <i className="ti ti-chevron-down"></i></a>
+                  <a className="header__nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Genre <i className="ti ti-chevron-down"></i></a>
                   <ul className="dropdown-menu header__dropdown-menu">
-                    <li><Link to="/catalog">Catalog style 1</Link></li>
-                    <li><Link to="/catalog">Catalog style 2</Link></li>
+                    {GENRES.map((genre) => (
+                      <li key={genre}>
+                        <Link to={`/catalog?genre=${genre.toLowerCase()}`}>{genre}</Link>
+                      </li>
+                    ))}
                   </ul>
                 </li>
                 {/* end dropdown */}

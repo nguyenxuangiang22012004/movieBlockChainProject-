@@ -9,22 +9,23 @@ import { getCatalog } from "../services/catalogService.js";
 function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [movies, setMovies] = useState([]);
-  const [currentPage, setCurrentPage] = useState(
-    parseInt(searchParams.get("page")) || 1
-  );
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
+  // 🔍 Lấy các tham số từ URL
+  const pageParam = parseInt(searchParams.get("page")) || 1;
   const typeParam = searchParams.get("type") || "all";
+  const genreParam = searchParams.get("genre") || "all";
 
   useEffect(() => {
     const fetchCatalog = async () => {
       setLoading(true);
       try {
         const data = await getCatalog({
-          page: currentPage,
+          page: pageParam,
           limit: 8,
           type: typeParam,
+          genre: genreParam !== "all" ? genreParam : undefined,
         });
 
         if (data.success) {
@@ -39,17 +40,19 @@ function CatalogPage() {
     };
 
     fetchCatalog();
-  }, [typeParam, currentPage]);
+  }, [pageParam, typeParam, genreParam]);
 
+  // 🔄 Khi đổi trang, giữ nguyên type và genre hiện tại
   const handlePageChange = (page) => {
-    setCurrentPage(page);
     setSearchParams({
-      ...Object.fromEntries(searchParams),
       page: page.toString(),
+      type: typeParam,
+      genre: genreParam,
     });
   };
 
-  if (loading) return <div className="text-center mt-5">Đang tải...</div>;
+  if (loading)
+    return <div className="text-center mt-5">Đang tải dữ liệu phim...</div>;
 
   return (
     <>

@@ -89,31 +89,30 @@ export const getCatalogItemById = async (id) => {
   }
 };
 
-export const getCatalog = async ({ page = 1, limit = 8, type = "all" }) => {
+export const getCatalog = async ({
+  page = 1,
+  limit = 8,
+  type = "all",
+  genre = "",
+}) => {
   try {
-    console.log("📡 catalogService.getCatalog() called with:", { page, limit, type });
+    console.log("📡 getCatalog() called with:", { page, limit, type, genre });
 
     const params = { page, limit };
     if (type !== "all") params.type = type;
-
+    if (genre) params.genre = genre;
+    
     const response = await api.get("/catalog-bycategory", { params });
 
     console.log("📥 Raw response:", response);
 
-    // ✅ Kiểm tra response có hợp lệ không
-    if (!response?.data || typeof response.data !== "object") {
-      throw new Error("API response is invalid or empty");
-    }
-
-    // ✅ Trường hợp chuẩn { success: true, data: [...], pagination: {...} }
-    if (response.data.success && Array.isArray(response.data.data)) {
-      console.log("✅ Valid catalog response format detected");
+    // ✅ Dữ liệu hợp lệ
+    if (response.data?.success && Array.isArray(response.data.data)) {
       return response.data;
     }
 
-    // ✅ Trường hợp API trả về mảng trực tiếp
+    // ✅ Nếu server trả mảng trực tiếp
     if (Array.isArray(response.data)) {
-      console.log("🔄 Wrapping array data into standard format");
       return {
         success: true,
         data: response.data,
@@ -121,9 +120,8 @@ export const getCatalog = async ({ page = 1, limit = 8, type = "all" }) => {
       };
     }
 
-    // ✅ Trường hợp trả về { items: [], pagination: {} }
+    // ✅ Nếu server trả { items: [], pagination: {} }
     if (Array.isArray(response.data.items)) {
-      console.log("🔄 Wrapping 'items' data into standard format");
       return {
         success: true,
         data: response.data.items,
@@ -133,9 +131,8 @@ export const getCatalog = async ({ page = 1, limit = 8, type = "all" }) => {
 
     console.error("📢 Unexpected response format:", response.data);
     throw new Error("API response does not contain valid data array");
-
   } catch (error) {
-    console.error("💥 API Error in catalogService.getCatalog:", error.message);
+    console.error("💥 API Error in getCatalog:", error.message);
     console.error("🔍 Error details:", {
       message: error.message,
       status: error.response?.status,
@@ -143,6 +140,10 @@ export const getCatalog = async ({ page = 1, limit = 8, type = "all" }) => {
       stack: error.stack,
     });
 
-    throw new Error(error.response?.data?.message || error.message || "Lỗi không xác định khi gọi API catalog");
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Lỗi không xác định khi gọi API catalog"
+    );
   }
 };
