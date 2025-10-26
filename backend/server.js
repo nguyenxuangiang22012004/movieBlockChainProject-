@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.js';
 import uploadRoutes from './routes/movies.routes.js';
 import tvSeriesRoutes from './routes/tvseries.routes.js';
 import catalogRoutes from './routes/catalog.routes.js';
+import userRoutes from './routes/users.routes.js';
 const app = express();
 app.use(
   cors({
@@ -22,4 +23,5 @@ app.use("/api", authRoutes);
 app.use("/api", uploadRoutes);
 app.use('/api', tvSeriesRoutes);
 app.use("/api",catalogRoutes);
+app.use("/api/users",userRoutes);
 app.listen(5000, () => console.log("🚀 Server chạy ở http://localhost:5000"));

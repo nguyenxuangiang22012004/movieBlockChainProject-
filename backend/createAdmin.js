@@ -38,6 +38,7 @@ const createAdminAccount = async () => {
       full_name: 'Administrator',
       role: 'admin', // << Gán quyền admin
       status: 'approved',
+      isVerified : true,
     });
 
     // 5. Lưu vào cơ sở dữ liệu
