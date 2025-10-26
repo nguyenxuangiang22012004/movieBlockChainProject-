@@ -10,3 +10,13 @@ export const getAllUsers = async (params = {}) => {
     throw err.response?.data || { message: "Không thể tải danh sách người dùng" };
   }
 };
+
+export const createUser = async (userData) => {
+  try {
+    const res = await api.post("/users", userData);
+    return res.data;
+  } catch (err) {
+    console.error("❌ createUser error:", err);
+    throw err;
+  }
+};

@@ -93,3 +93,20 @@ export const getAllUsersService = async (filters) => {
     data: userData,
   };
 };
+
+export const createUserService = async (data) => {
+  const { email, username, password } = data;
+
+  // 🧩 Tạo user mới
+  const newUser = await User.create({
+    email,
+    username,
+    password,
+  });
+
+  // Ẩn password khi trả về
+  const userWithoutPassword = newUser.toObject();
+  delete userWithoutPassword.password;
+
+  return userWithoutPassword;
+};
