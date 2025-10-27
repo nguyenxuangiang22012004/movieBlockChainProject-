@@ -20,3 +20,16 @@ export const createUser = async (userData) => {
     throw err;
   }
 };
+
+// ✅ Lấy chi tiết 1 user theo ID
+export const getUserByIdService = async (userId) => {
+  const res = await api.get(`/users/${userId}`);
+  return res.data;
+};
+
+// ✅ Cập nhật user
+export const updateUserService = async (userId, data) => {
+  const res = await api.put(`/users/${userId}`, data);
+  
+  return res.data;
+};

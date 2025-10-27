@@ -110,3 +110,37 @@ export const createUserService = async (data) => {
 
   return userWithoutPassword;
 };
+
+export const updateUserService = async (userId, updateData) => {
+  const allowedFields = [
+    "username",
+    "email",
+    "full_name",
+    "address",
+    "phone",
+    "avatar_url",
+    "role",
+    "status",
+    "subscriptionPlan",
+  ];
+
+  const updateFields = {};
+
+  for (const key of allowedFields) {
+    if (updateData[key] !== undefined) updateFields[key] = updateData[key];
+  }
+
+  // ⚡ Nếu có thay đổi gói subscription
+  if (updateData.subscriptionPlan) {
+    updateFields["subscriptionCache.planName"] = updateData.subscriptionPlan;
+    updateFields["subscriptionCache.isActive"] =
+      updateData.subscriptionPlan !== null;
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(userId, updateFields, {
+    new: true,
+    runValidators: true,
+  }).select("-password");
+
+  return updatedUser;
+};

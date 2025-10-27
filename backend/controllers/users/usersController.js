@@ -1,6 +1,6 @@
-import { getAllUsersService ,createUserService  } from "../../services/users/userService.js";
+import { getAllUsersService ,createUserService , updateUserService  } from "../../services/users/userService.js";
 import bcrypt from "bcryptjs";
-
+import User from "../../models/user.model.js";
 
 export const getAllUsers = async (req, res) => {
   try {
@@ -65,5 +65,50 @@ export const createUser = async (req, res) => {
       message: "Lỗi server khi tạo người dùng",
       error: err.message,
     });
+  }
+};
+
+export const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const result = await updateUserService(id, updateData);
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy người dùng",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật người dùng thành công",
+      data: result,
+    });
+  } catch (err) {
+    console.error("❌ Error in updateUser:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi server khi cập nhật người dùng",
+      error: err.message,
+    });
+  }
+};
+
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select("-password"); // loại bỏ password khi trả về
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.json({ success: true, data: user });
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

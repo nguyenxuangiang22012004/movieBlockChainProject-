@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useParams } from 'react-router-dom';
-
+import React, { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
+import Swal from "sweetalert2";
+import { getUserByIdService, updateUserService } from "../services/userService";
 function EditUserPage() {
   const { userId } = useParams();
   const [activeTab, setActiveTab] = useState('profile');
+  const [user, setUser] = useState(null);
   //  const [subscription, setSubscription] = useState("Basic");
   // const [rights, setRights] = useState("User");
 
@@ -12,6 +14,59 @@ function EditUserPage() {
 
   // const subscriptionOptions = ["Basic", "Premium", "Cinematic"];
   // const rightsOptions = ["User", "Moderator", "Admin"];
+  const [form, setForm] = useState({
+    username: "",
+    email: "",
+    full_name: "",
+    role: "user",
+    subscriptionPlan: "Basic",
+  });
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await getUserByIdService(userId);
+        setUser(res.data);
+        setForm({
+          username: res.data.username,
+          email: res.data.email,
+          full_name: res.data.full_name || "",
+          role: res.data.role || "user",
+          subscriptionPlan: res.data.subscriptionCache?.planName || "Basic",
+        });
+      } catch (err) {
+        console.error("Error fetching user:", err);
+        Swal.fire("Lỗi", "Không thể tải thông tin người dùng!", "error");
+      }
+    };
+    fetchUser();
+  }, [userId]);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+  useEffect(() => {
+  if (user) console.log("User state updated:", user);
+}, [user]);
+  // ✅ Submit cập nhật user
+  const handleSave = async () => {
+    try {
+      const updateData = {
+        username: form.username,
+        email: form.email,
+        full_name: form.full_name,
+        role: form.role,
+        subscriptionCache: { planName: form.subscriptionPlan },
+      };
+
+      const res = await updateUserService(userId, updateData);
+
+      Swal.fire("Thành công", res.message || "Cập nhật người dùng thành công!", "success");
+    } catch (err) {
+      console.error("Update user error:", err);
+      Swal.fire("Lỗi", err.response?.data?.message || "Cập nhật thất bại!", "error");
+    }
+  };
+
 
   // ✅ Đóng dropdown khi click ra ngoài
   useEffect(() => {
@@ -41,11 +96,18 @@ function EditUserPage() {
           <div className="profile__content">
             <div className="profile__user">
               <div className="profile__avatar">
-                <img src="/img/user.svg" alt="" />
+                <img
+                  src={user?.avatar || "/img/user.svg"}
+                  alt={user?.username || "user"}
+                />
               </div>
+
               <div className="profile__meta profile__meta--green">
-                <h3>John Doe <span>(Approved)</span></h3>
-                <span>HotFlix ID: 23562</span>
+                <h3>
+                  {user?.username || "Unknown"}{" "}
+                  <span>({user?.status || "Pending"})</span>
+                </h3>
+                <span>HotFlix ID: {user?._id?.slice(-6) || "N/A"}</span>
               </div>
             </div>
 
@@ -97,7 +159,7 @@ function EditUserPage() {
                 <div className="row">
                   {/* details form */}
                   <div className="col-12 col-lg-6">
-                    <form action="#" className="sign__form sign__form--profile">
+                    <form className="sign__form sign__form--profile">
                       <div className="row">
                         <div className="col-12">
                           <h4 className="sign__title">Profile details</h4>
@@ -106,44 +168,55 @@ function EditUserPage() {
                         <div className="col-12 col-md-6">
                           <div className="sign__group">
                             <label className="sign__label" htmlFor="username">Username</label>
-                            <input id="username" type="text" name="username" className="sign__input" placeholder="User 123" />
+                            <input
+                              id="username"
+                              name="username"
+                              type="text"
+                              className="sign__input"
+                              value={form.username}
+                              onChange={handleChange}
+                            />
                           </div>
                         </div>
 
                         <div className="col-12 col-md-6">
                           <div className="sign__group">
-                            <label className="sign__label" htmlFor="email2">Email</label>
-                            <input id="email2" type="text" name="email" className="sign__input" placeholder="email@email.com" />
+                            <label className="sign__label" htmlFor="email">Email</label>
+                            <input
+                              id="email"
+                              name="email"
+                              type="text"
+                              className="sign__input"
+                              value={form.email}
+                              onChange={handleChange}
+                            />
                           </div>
                         </div>
 
                         <div className="col-12 col-md-6">
                           <div className="sign__group">
-                            <label className="sign__label" htmlFor="fname">Name</label>
-                            <input id="fname" type="text" name="fname" className="sign__input" placeholder="John Doe" />
+                            <label className="sign__label" htmlFor="full_name">Full name</label>
+                            <input
+                              id="full_name"
+                              name="full_name"
+                              type="text"
+                              className="sign__input"
+                              value={form.full_name}
+                              onChange={handleChange}
+                            />
                           </div>
                         </div>
 
                         <div className="col-12 col-md-6">
                           <div className="sign__group">
-                            <label className="sign__label" htmlFor="sign__gallery-upload">Avatar</label>
-                            <div className="sign__gallery">
-                              <label id="gallery1" htmlFor="sign__gallery-upload">Upload (40x40)</label>
-                              <input data-name="#gallery1" id="sign__gallery-upload" name="gallery" className="sign__gallery-upload" type="file" accept=".png, .jpg, .jpeg" multiple="" />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Subscription */}
-                        <div className="col-12 col-md-6">
-                          <div className="sign__group">
-                            <label
-                              className="sign__label"
-                              htmlFor="subscription"
+                            <label className="sign__label" htmlFor="subscription">Subscription</label>
+                            <select
+                              id="subscription"
+                              name="subscriptionPlan"
+                              className="sign__select"
+                              value={form.subscriptionPlan}
+                              onChange={handleChange}
                             >
-                              Subscription
-                            </label>
-                            <select className="sign__select" id="subscription">
                               <option value="Basic">Basic</option>
                               <option value="Premium">Premium</option>
                               <option value="Cinematic">Cinematic</option>
@@ -151,22 +224,29 @@ function EditUserPage() {
                           </div>
                         </div>
 
-                        {/* Rights */}
                         <div className="col-12 col-md-6">
                           <div className="sign__group">
-                            <label className="sign__label" htmlFor="rights">
-                              Rights
-                            </label>
-                            <select className="sign__select" id="rights">
-                              <option value="User">User</option>
-                              <option value="Moderator">Moderator</option>
-                              <option value="Admin">Admin</option>
+                            <label className="sign__label" htmlFor="role">Rights</label>
+                            <select
+                              id="role"
+                              name="role"
+                              className="sign__select"
+                              value={form.role}
+                              onChange={handleChange}
+                            >
+                              <option value="user">User</option>
+                              <option value="moderator">Moderator</option>
+                              <option value="admin">Admin</option>
                             </select>
                           </div>
                         </div>
 
                         <div className="col-12">
-                          <button className="sign__btn sign__btn--small" type="button">
+                          <button
+                            className="sign__btn sign__btn--small"
+                            type="button"
+                            onClick={handleSave}
+                          >
                             <span>Save</span>
                           </button>
                         </div>
