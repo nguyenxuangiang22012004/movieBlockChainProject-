@@ -436,7 +436,7 @@ function UsersPage() {
                   </div>
                   <div className="col-12">
                     <button
-                      className="sign__btn"
+                      className="sign__btn" 
                       type="button"
                       onClick={handleAddUser}
                     >

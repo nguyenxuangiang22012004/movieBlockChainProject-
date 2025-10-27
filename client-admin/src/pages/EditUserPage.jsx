@@ -1,24 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 function EditUserPage() {
   const { userId } = useParams();
   const [activeTab, setActiveTab] = useState('profile');
+  //  const [subscription, setSubscription] = useState("Basic");
+  // const [rights, setRights] = useState("User");
 
+  // const [openDropdown, setOpenDropdown] = useState(null);
+  const dropdownRef = useRef(null);
+
+  // const subscriptionOptions = ["Basic", "Premium", "Cinematic"];
+  // const rightsOptions = ["User", "Moderator", "Admin"];
+
+  // ✅ Đóng dropdown khi click ra ngoài
   useEffect(() => {
-    
-    // Khởi tạo SlimSelect khi component được mount và khi activeTab thay đổi
-    if (window.SlimSelect && activeTab === 'profile') {
-      new window.SlimSelect({
-        select: '#subscription',
-        settings: { showSearch: false }
-      });
-      new window.SlimSelect({
-        select: '#rights',
-        settings: { showSearch: false }
-      });
-    }
-  }, [userId, activeTab]);
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
 
   return (
     <div className="container-fluid">
@@ -46,31 +51,31 @@ function EditUserPage() {
 
             <ul className="nav nav-tabs profile__tabs" id="profile__tabs" role="tablist">
               <li className="nav-item" role="presentation">
-                <button 
-                  className={activeTab === 'profile' ? 'active' : ''} 
+                <button
+                  className={activeTab === 'profile' ? 'active' : ''}
                   onClick={() => setActiveTab('profile')}
                 >
                   Profile
                 </button>
               </li>
               <li className="nav-item" role="presentation">
-                <button 
-                  className={activeTab === 'comments' ? 'active' : ''} 
+                <button
+                  className={activeTab === 'comments' ? 'active' : ''}
                   onClick={() => setActiveTab('comments')}
                 >
                   Comments
                 </button>
               </li>
               <li className="nav-item" role="presentation">
-                <button 
-                  className={activeTab === 'reviews' ? 'active' : ''} 
+                <button
+                  className={activeTab === 'reviews' ? 'active' : ''}
                   onClick={() => setActiveTab('reviews')}
                 >
                   Reviews
                 </button>
               </li>
             </ul>
-            
+
             <div className="profile__actions">
               <button type="button" data-bs-toggle="modal" className="profile__action profile__action--banned" data-bs-target="#modal-status3">
                 <i className="ti ti-lock"></i>
@@ -129,9 +134,15 @@ function EditUserPage() {
                           </div>
                         </div>
 
+                        {/* Subscription */}
                         <div className="col-12 col-md-6">
                           <div className="sign__group">
-                            <label className="sign__label" htmlFor="subscription">Subscription</label>
+                            <label
+                              className="sign__label"
+                              htmlFor="subscription"
+                            >
+                              Subscription
+                            </label>
                             <select className="sign__select" id="subscription">
                               <option value="Basic">Basic</option>
                               <option value="Premium">Premium</option>
@@ -140,9 +151,12 @@ function EditUserPage() {
                           </div>
                         </div>
 
+                        {/* Rights */}
                         <div className="col-12 col-md-6">
                           <div className="sign__group">
-                            <label className="sign__label" htmlFor="rights">Rights</label>
+                            <label className="sign__label" htmlFor="rights">
+                              Rights
+                            </label>
                             <select className="sign__select" id="rights">
                               <option value="User">User</option>
                               <option value="Moderator">Moderator</option>
@@ -203,7 +217,7 @@ function EditUserPage() {
               </div>
             </div>
           )}
-          
+
           {/* Comments Tab */}
           {activeTab === 'comments' && (
             <div className="tab-pane fade show active">
@@ -507,7 +521,7 @@ function EditUserPage() {
         </div>
       </div>
       {/* end status modal */}
-      
+
       {/* delete modal */}
       <div className="modal fade" id="modal-delete3" tabIndex="-1" aria-labelledby="modal-delete3" aria-hidden="true">
         <div className="modal-dialog modal-dialog-centered">
