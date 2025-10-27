@@ -33,3 +33,8 @@ export const updateUserService = async (userId, data) => {
   
   return res.data;
 };
+
+export const deleteUserService = async (id) => {
+  const res = await api.delete(`/users/${id}`);
+  return res.data;
+};

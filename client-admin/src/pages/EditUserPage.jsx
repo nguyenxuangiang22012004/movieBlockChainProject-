@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import Swal from "sweetalert2";
-import { getUserByIdService, updateUserService } from "../services/userService";
+import { getUserByIdService, updateUserService, deleteUserService } from "../services/userService";
 function EditUserPage() {
   const { userId } = useParams();
   const [activeTab, setActiveTab] = useState('profile');
@@ -45,8 +45,8 @@ function EditUserPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
   useEffect(() => {
-  if (user) console.log("User state updated:", user);
-}, [user]);
+    if (user) console.log("User state updated:", user);
+  }, [user]);
   // ✅ Submit cập nhật user
   const handleSave = async () => {
     try {
@@ -142,7 +142,42 @@ function EditUserPage() {
               <button type="button" data-bs-toggle="modal" className="profile__action profile__action--banned" data-bs-target="#modal-status3">
                 <i className="ti ti-lock"></i>
               </button>
-              <button type="button" data-bs-toggle="modal" className="profile__action profile__action--delete" data-bs-target="#modal-delete3">
+              <button
+                className="profile__action profile__action--delete"
+                type="button"
+                onClick={async () => {
+                  const confirm = await Swal.fire({
+                    title: "Xóa người dùng?",
+                    text: "Hành động này sẽ xóa vĩnh viễn người dùng khỏi hệ thống!",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonText: "Xóa",
+                    cancelButtonText: "Hủy",
+                    reverseButtons: false,
+                    confirmButtonColor: "#d33",
+                    cancelButtonColor: "#3085d6",
+                  });
+
+                  if (confirm.isConfirmed) {
+                    try {
+                      const res = await deleteUserService(userId);
+                      await Swal.fire(
+                        "Đã xóa!",
+                        res.message || "Người dùng đã bị xóa thành công!",
+                        "success"
+                      );
+                      window.location.href = "/admin/users"; 
+                    } catch (err) {
+                      console.error("❌ Delete user error:", err);
+                      Swal.fire(
+                        "Lỗi",
+                        err.response?.data?.message || "Không thể xóa người dùng!",
+                        "error"
+                      );
+                    }
+                  }
+                }}
+              >
                 <i className="ti ti-trash"></i>
               </button>
             </div>

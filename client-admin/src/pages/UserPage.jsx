@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { getAllUsers, createUser } from "../services/userService";
+import { getAllUsers, createUser, deleteUserService } from "../services/userService";
 import Swal from "sweetalert2";
 
 function UsersPage() {
@@ -119,6 +119,39 @@ function UsersPage() {
       );
     }
   };
+  const handleDeleteUser = async (userId) => {
+    const confirm = await Swal.fire({
+      title: "Xác nhận xóa?",
+      text: "Người dùng này sẽ bị xóa vĩnh viễn khỏi hệ thống!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Xóa",
+      cancelButtonText: "Hủy",
+      reverseButtons: false,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+    });
+
+    if (confirm.isConfirmed) {
+      try {
+        const res = await deleteUserService(userId);
+        await Swal.fire(
+          "Đã xóa!",
+          res.message || "Người dùng đã bị xóa thành công!",
+          "success"
+        );
+        fetchUsers(); // 🔄 refresh danh sách
+      } catch (err) {
+        console.error("❌ Delete user error:", err);
+        Swal.fire(
+          "Lỗi",
+          err.response?.data?.message || "Không thể xóa người dùng!",
+          "error"
+        );
+      }
+    }
+  };
+
 
   return (
     <>
@@ -265,9 +298,8 @@ function UsersPage() {
                               </Link>
                               <button
                                 type="button"
-                                data-bs-toggle="modal"
                                 className="catalog__btn catalog__btn--delete"
-                                data-bs-target="#modal-delete"
+                                onClick={() => handleDeleteUser(user._id || user.id)}
                               >
                                 <i className="ti ti-trash"></i>
                               </button>
@@ -436,7 +468,7 @@ function UsersPage() {
                   </div>
                   <div className="col-12">
                     <button
-                      className="sign__btn" 
+                      className="sign__btn"
                       type="button"
                       onClick={handleAddUser}
                     >

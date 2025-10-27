@@ -1,4 +1,4 @@
-import { getAllUsersService ,createUserService , updateUserService  } from "../../services/users/userService.js";
+import { getAllUsersService ,createUserService , updateUserService , deleteUserService } from "../../services/users/userService.js";
 import bcrypt from "bcryptjs";
 import User from "../../models/user.model.js";
 
@@ -110,5 +110,32 @@ export const getUserById = async (req, res) => {
   } catch (error) {
     console.error("Error fetching user:", error);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await deleteUserService(id);
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy người dùng để xóa",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Xóa người dùng thành công",
+    });
+  } catch (err) {
+    console.error("❌ Error deleting user:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi server khi xóa người dùng",
+      error: err.message,
+    });
   }
 };

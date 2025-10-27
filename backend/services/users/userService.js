@@ -144,3 +144,8 @@ export const updateUserService = async (userId, updateData) => {
 
   return updatedUser;
 };
+
+export const deleteUserService = async (id) => {
+  const deletedUser = await User.findByIdAndDelete(id);
+  return deletedUser;
+};
