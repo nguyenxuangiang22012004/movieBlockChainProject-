@@ -15,13 +15,12 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json());
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-
+app.use("/api/users",userRoutes);
 app.use("/api", authRoutes);
 app.use("/api", uploadRoutes);
 app.use('/api', tvSeriesRoutes);
 app.use("/api",catalogRoutes);
-app.use("/api/users",userRoutes);
 app.listen(5000, () => console.log("🚀 Server chạy ở http://localhost:5000"));

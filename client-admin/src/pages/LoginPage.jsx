@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { login } from "@/services/authService";
+import { login } from "../services/authService";
 
 function LoginPage() {
   const signBgRef = useRef(null);

@@ -37,7 +37,6 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
-    // Gắn user vào request
     req.user = user;
     next();
   } catch (error) {
@@ -63,6 +62,8 @@ export const authMiddleware = async (req, res, next) => {
 // Middleware kiểm tra role
 export const requireRole = (...roles) => {
   return (req, res, next) => {
+    console.log("🟢 Vào requireRole với roles:", roles);
+    console.log("🔍 req.user:", req.user);
     if (!req.user) {
       return res.status(401).json({
         success: false,

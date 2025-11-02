@@ -38,3 +38,16 @@ export const deleteUserService = async (id) => {
   const res = await api.delete(`/users/${id}`);
   return res.data;
 };
+
+export const updateUserStatusService = async (userId, newStatus) => {
+  try {
+    const res = await api.patch(`/users/${userId}/status`, {
+      status: newStatus, 
+    });
+
+    return res.data;
+  } catch (err) {
+    console.error("❌ updateUserStatusService error:", err);
+    throw err;
+  }
+};

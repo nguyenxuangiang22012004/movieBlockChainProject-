@@ -139,3 +139,44 @@ export const deleteUser = async (req, res) => {
     });
   }
 };
+
+export const updateUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+
+    if (!["approved", "banned"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Trạng thái không hợp lệ (approved hoặc banned)",
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy người dùng",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `Đã cập nhật trạng thái thành '${status}'`,
+      data: user,
+    });
+  } catch (err) {
+    console.error("❌ Update user status error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi server khi cập nhật trạng thái",
+    });
+  }
+};

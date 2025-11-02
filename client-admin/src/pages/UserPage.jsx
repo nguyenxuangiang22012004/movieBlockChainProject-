@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { getAllUsers, createUser, deleteUserService } from "../services/userService";
+import { getAllUsers, createUser, deleteUserService, updateUserStatusService } from "../services/userService";
 import Swal from "sweetalert2";
 
 function UsersPage() {
@@ -152,6 +152,34 @@ function UsersPage() {
     }
   };
 
+  const handleToggleStatus = async (user) => {
+    if (!user?._id) return;
+    
+    const newStatus = user.status === "approved" ? "banned" : "approved";
+
+    const confirm = await Swal.fire({
+      title: "Thay đổi trạng thái?",
+      text: `Bạn có chắc muốn chuyển người dùng này sang trạng thái '${newStatus}' không?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Đồng ý",
+      cancelButtonText: "Hủy",
+      reverseButtons: true,
+    });
+
+    if (confirm.isConfirmed) {
+      try {
+        const res = await updateUserStatusService(user._id, newStatus);
+        Swal.fire("Thành công", res.message || "Cập nhật trạng thái thành công!", "success");
+
+        setUsers((prev) =>
+          prev.map((u) => (u._id === user._id ? { ...u, status: newStatus } : u))
+        );
+      } catch (err) {
+        Swal.fire("Lỗi", err.response?.data?.message || "Không thể thay đổi trạng thái!", "error");
+      }
+    }
+  };
 
   return (
     <>
@@ -284,9 +312,8 @@ function UsersPage() {
                             <div className="catalog__btns">
                               <button
                                 type="button"
-                                data-bs-toggle="modal"
                                 className="catalog__btn catalog__btn--banned"
-                                data-bs-target="#modal-status"
+                                onClick={() => handleToggleStatus(user)}
                               >
                                 <i className="ti ti-lock"></i>
                               </button>

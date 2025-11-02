@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import Swal from "sweetalert2";
-import { getUserByIdService, updateUserService, deleteUserService } from "../services/userService";
+import { getUserByIdService, updateUserService, deleteUserService, updateUserStatusService } from "../services/userService";
 function EditUserPage() {
   const { userId } = useParams();
   const [activeTab, setActiveTab] = useState('profile');
@@ -79,7 +79,32 @@ function EditUserPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleToggleStatus = async () => {
+    if (!user?._id) return;
 
+    const newStatus = user.status === "approved" ? "banned" : "approved";
+
+    const confirm = await Swal.fire({
+      title: "Thay đổi trạng thái?",
+      text: `Bạn có chắc muốn chuyển người dùng này sang trạng thái '${newStatus}' không?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Đồng ý",
+      cancelButtonText: "Hủy",
+      reverseButtons: false,
+    });
+
+    if (confirm.isConfirmed) {
+      try {
+        const res = await updateUserStatusService(user._id, newStatus);
+        Swal.fire("Thành công", res.message || "Cập nhật trạng thái thành công!", "success");
+        // Cập nhật lại state user
+        setUser((prev) => ({ ...prev, status: newStatus }));
+      } catch (err) {
+        Swal.fire("Lỗi", err.response?.data?.message || "Không thể thay đổi trạng thái!", "error");
+      }
+    }
+  };
   return (
     <div className="container-fluid">
       <div className="row">
@@ -139,7 +164,11 @@ function EditUserPage() {
             </ul>
 
             <div className="profile__actions">
-              <button type="button" data-bs-toggle="modal" className="profile__action profile__action--banned" data-bs-target="#modal-status3">
+              <button
+                type="button"
+                className="profile__action profile__action--banned"
+                onClick={handleToggleStatus}
+              >
                 <i className="ti ti-lock"></i>
               </button>
               <button
@@ -166,7 +195,7 @@ function EditUserPage() {
                         res.message || "Người dùng đã bị xóa thành công!",
                         "success"
                       );
-                      window.location.href = "/admin/users"; 
+                      window.location.href = "/admin/users";
                     } catch (err) {
                       console.error("❌ Delete user error:", err);
                       Swal.fire(
