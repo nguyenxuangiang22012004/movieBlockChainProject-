@@ -6,7 +6,6 @@ function ContactsPage() {
     const handleSubmit = (event) => {
         event.preventDefault();
         // Xử lý logic gửi form ở đây
-        console.log('Form submitted!');
     };
 
   return (

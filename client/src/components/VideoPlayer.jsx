@@ -64,7 +64,7 @@ function VideoPlayer({
       if (playerInstance.current) {
         try {
           playerInstance.current.destroy();
-          console.log("🧹 Destroyed Plyr instance");
+
         } catch (e) {
           console.warn("⚠️ Error destroying Plyr:", e);
         }
@@ -136,14 +136,12 @@ function VideoPlayer({
     player.source = { type: "video", sources };
     playerInstance.current = player;
 
-    console.log("🎬 Plyr initialized:", currentMovie.title);
 
     // Cleanup riêng cho mỗi lần đổi videoKey
     return () => {
       if (playerInstance.current) {
         try {
           playerInstance.current.destroy();
-          console.log("♻️ Destroyed Plyr before remount");
         } catch (e) {
           console.warn("⚠️ Cleanup Plyr failed:", e);
         } finally {

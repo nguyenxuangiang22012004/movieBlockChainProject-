@@ -76,7 +76,6 @@ function DetailsPage() {
   }, [seasonFromUrl, episodeFromUrl]);
 
   useEffect(() => {
-    console.log('Fetching movie with ID:', movieId);
     setIsLoadingMovie(true);
     videoKey.current = Date.now();
     dispatch(fetchMovieById(movieId))
@@ -103,7 +102,6 @@ function DetailsPage() {
 
   // Force re-render video khi đổi episode
   useEffect(() => {
-    console.log('Episode index changed to:', selectedEpisodeIndex, 'New videoKey:', videoKey.current);
     videoKey.current += 1;
   }, [selectedEpisodeIndex]);
 

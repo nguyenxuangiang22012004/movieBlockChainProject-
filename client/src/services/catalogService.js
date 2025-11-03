@@ -2,7 +2,6 @@ import api from "../config/axios.js";
 
 export const getAll = async () => {
   try {
-    console.log('📡 catalogService.getAll() called');
     
     const response = await api.get("/catalog");
     
@@ -39,15 +38,8 @@ export const getAll = async () => {
 
 export const getCatalogItemById = async (id) => {
   try {
-    console.log('📡 catalogService.getCatalogItemById() called for ID:', id);
     
     const response = await api.get(`/catalog/${id}`);
-    
-    // ✅ LOG CHI TIẾT
-    console.log('📥 Raw API response:', response);
-    console.log('📦 response.data:', JSON.stringify(response.data, null, 2));
-    console.log('🎯 Type of response.data:', typeof response.data);
-    console.log('🔑 Keys in response.data:', Object.keys(response.data || {}));
 
     // Kiểm tra response có hợp lệ không
     if (!response?.data || typeof response.data !== 'object') {
@@ -58,14 +50,12 @@ export const getCatalogItemById = async (id) => {
     // ✅ FIX: Kiểm tra xem response.data có phải là object với success và data không
     // Nếu response.data ĐÃ có success: true và data thì trả về
     if (response.data.success === true && response.data.data) {
-      console.log('✅ Valid response format: { success: true, data: {...} }');
       return response.data;
     }
     
     // Nếu response.data TRỰC TIẾP chứa dữ liệu movie (_id, title, etc.)
     // thì wrap nó vào format { success: true, data: ... }
     if (response.data._id || response.data.title) {
-      console.log('🔄 Wrapping direct data into { success: true, data: ... }');
       return { success: true, data: response.data };
     }
 

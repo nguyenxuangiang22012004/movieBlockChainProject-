@@ -4,7 +4,6 @@ import { getAll, getCatalogItemById } from '../../services/catalogService';
 export const fetchMovies = createAsyncThunk(
   'movies/fetchMovies',
   async (_, { rejectWithValue }) => {
-    console.log('🚀 fetchMovies thunk started');
     try {
       const response = await getAll();
       return response;

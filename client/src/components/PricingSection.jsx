@@ -8,12 +8,10 @@ import { updateSubscription } from "../services/subscriptionService";
 function PricingSection() {
   const handleBuyPlan = async (planIndex, priceEth) => {
     try {
-      console.log("🔗 Connecting to local Hardhat network...");
       const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
 
       // ✅ Lấy tài khoản từ Hardhat node
       const accounts = await provider.listAccounts();
-      console.log("📜 Accounts:", accounts);
 
       // ✅ Chọn tài khoản đầu tiên làm signer
       const signer = await provider.getSigner(accounts[0].address);
