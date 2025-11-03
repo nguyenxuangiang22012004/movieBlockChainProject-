@@ -192,7 +192,7 @@ export const getCatalogItemById = async (id, userId) => {
     const user = await User.findById(userId).lean();
     const planName = user?.subscriptionCache?.planName || "Basic";
     const isActive = user?.subscriptionCache?.isActive || false;
-    
+
     // Tìm Movie hoặc TVSeries
     let item = await Movie.findById(id).lean();
     if (!item) item = await TVSeries.findById(id).lean();
@@ -210,6 +210,21 @@ export const getCatalogItemById = async (id, userId) => {
     if (item.video_source) {
       const filteredSources = filterSourcesByPlan(item.video_source.sources, planName);
       item.video_source.sources = filteredSources;
+    }
+
+    if (item.seasons && Array.isArray(item.seasons)) {
+      item.seasons.forEach(season => {
+        if (season.episodes && Array.isArray(season.episodes)) {
+          season.episodes.forEach(episode => {
+            if (episode.video_source?.sources) {
+              episode.video_source.sources = filterSourcesByPlan(
+                episode.video_source.sources,
+                planName
+              );
+            }
+          });
+        }
+      });
     }
 
     return { success: true, data: { ...item, category: item.category || "Unknown" } };
