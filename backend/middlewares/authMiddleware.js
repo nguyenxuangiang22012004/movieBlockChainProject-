@@ -1,13 +1,12 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 
-const JWT_SECRET = process.env.JWT_SECRET ;
 
 export const authMiddleware = async (req, res, next) => {
   try {
     // Lấy token từ header
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
@@ -15,14 +14,13 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
-    const token = authHeader.substring(7); // Bỏ "Bearer "
-
+    const token = authHeader.substring(7);
     // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET);
 
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     // Tìm user
     const user = await User.findById(decoded.userId).select("-password");
-    
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -80,3 +78,5 @@ export const requireRole = (...roles) => {
     next();
   };
 };
+
+export default authMiddleware;

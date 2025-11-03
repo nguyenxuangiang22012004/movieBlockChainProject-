@@ -1,6 +1,6 @@
 import Movie from "../../models/movie.model.js";
 import TVSeries from "../../models/tvSeries.model.js";
-
+import User from "../../models/user.model.js";
 export const getCatalogByCategory = async (type = "all", genre = "", page = 1, limit = 10) => {
   try {
     const skip = (page - 1) * limit;
@@ -187,21 +187,55 @@ export const updateStatusCatalog = async (type, id, status) => {
   return updatedItem;
 };
 
-export const getCatalogItemById = async (id) => {
+export const getCatalogItemById = async (id, userId) => {
   try {
+    const user = await User.findById(userId).lean();
+    const planName = user?.subscriptionCache?.planName || "Basic";
+    const isActive = user?.subscriptionCache?.isActive || false;
+    
+    // Tìm Movie hoặc TVSeries
     let item = await Movie.findById(id).lean();
-    if (item) {
-      return { success: true, data: { ...item, category: "Movie" } };
+    if (!item) item = await TVSeries.findById(id).lean();
+    if (!item) return { success: false, message: "Item not found" };
+
+    // Nếu chưa kích hoạt subscription thì không cho xem video
+    if (!isActive) {
+      return {
+        success: false,
+        message: "Gói đăng ký chưa kích hoạt. Hãy mua hoặc gia hạn gói của bạn.",
+      };
     }
-    item = await TVSeries.findById(id).lean();
-    if (item) {
-      return { success: true, data: { ...item, category: "TVSeries" } };
+
+    // Lọc video_source theo planName
+    if (item.video_source) {
+      const filteredSources = filterSourcesByPlan(item.video_source.sources, planName);
+      item.video_source.sources = filteredSources;
     }
-    return { success: false, message: "Item not found" };
+
+    return { success: true, data: { ...item, category: item.category || "Unknown" } };
   } catch (error) {
     return { success: false, message: error.message };
   }
 };
+
+const filterSourcesByPlan = (sources, planName) => {
+  switch (planName) {
+    case "Basic":
+      return { "480p": sources["480p"] };
+    case "Premium":
+      return { "480p": sources["480p"], "720p": sources["720p"] };
+    case "Cinematic":
+      return {
+        "480p": sources["480p"],
+        "720p": sources["720p"],
+        "1080p": sources["1080p"],
+        "hls": sources["hls"],
+      };
+    default:
+      return { "480p": sources["480p"] };
+  }
+};
+
 
 export const updateCatalogItem = async (id, updateData) => {
   try {

@@ -29,10 +29,10 @@ export const getCatalog = async (req, res) => {
 export const getCatalogItemById = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await catalogService.getCatalogItemById(id);
+    const userId = req.user._id; 
+    const result = await catalogService.getCatalogItemById(id , userId);
 
     if (result.success) {
-      // ✅ FIX: Trả về cả object result thay vì chỉ result.data
       res.status(200).json(result);
     } else {
       res.status(404).json({ success: false, message: result.message });

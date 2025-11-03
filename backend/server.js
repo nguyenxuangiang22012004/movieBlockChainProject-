@@ -3,6 +3,7 @@ dotenv.config(); // chỉ cần dòng này
 import express from "express";
 import cors from "cors";
 import db from "./database/db.js";
+import authMiddleware from './middlewares/authMiddleware.js'
 import authRoutes from './routes/auth.js';
 import uploadRoutes from './routes/movies.routes.js';
 import tvSeriesRoutes from './routes/tvseries.routes.js';
@@ -17,12 +18,12 @@ app.use(
   })
 );
 app.use(express.json());
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.urlencoded( { limit: '50mb', extended: true }));
 
 app.use("/api/users",userRoutes);
 app.use("/api", authRoutes);
 app.use("/api", uploadRoutes);
 app.use('/api', tvSeriesRoutes);
-app.use("/api",catalogRoutes);
+app.use("/api", authMiddleware,catalogRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.listen(5000, () => console.log("🚀 Server chạy ở http://localhost:5000"));

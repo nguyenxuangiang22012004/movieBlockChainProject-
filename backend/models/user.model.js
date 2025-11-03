@@ -55,7 +55,7 @@ const userSchema = new Schema(
     },
     subscriptionCache: {
       isActive: { type: Boolean, default: false },
-      planName: { type: String, enum: ["Basic", "Premium", "Cinematic", null], default: null },
+      planName: { type: String, enum: ["Basic", "Premium", "Cinematic", null], default: "Basic" },
       expiresAt: { type: Date, default: null },
     },
     favorites: [

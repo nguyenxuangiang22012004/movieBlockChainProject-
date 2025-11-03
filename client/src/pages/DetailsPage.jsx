@@ -95,10 +95,8 @@ function DetailsPage() {
     if (currentMovie?.category?.toLowerCase() === 'tvseries') {
       setSelectedEpisodeIndex(0);
       videoKey.current += 1;
-      // URL hiển thị season và episode bắt đầu từ 1
       navigate(`/details/${movieId}?season=${selectedSeasonIndex + 1}&episode=1`, { replace: true });
     } else {
-      // Nếu là movie thì đảm bảo không có query trên URL
       navigate(`/details/${movieId}`, { replace: true });
     }
   }, [selectedSeasonIndex, currentMovie, movieId, navigate]);

@@ -51,7 +51,6 @@ export const loginService = async (email, password) => {
         message: "Email hoặc mật khẩu không đúng",
       };
     }
-
     // Tạo JWT token
     const token = jwt.sign(
       {
