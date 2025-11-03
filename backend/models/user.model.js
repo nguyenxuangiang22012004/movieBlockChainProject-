@@ -46,6 +46,13 @@ const userSchema = new Schema(
       enum: ["user", "moderator", "admin"],
       default: "user",
     },
+    walletAddress: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      default: "", 
+    },
     subscriptionCache: {
       isActive: { type: Boolean, default: false },
       planName: { type: String, enum: ["Basic", "Premium", "Cinematic", null], default: null },
