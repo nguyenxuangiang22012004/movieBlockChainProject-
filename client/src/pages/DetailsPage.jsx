@@ -8,15 +8,6 @@ import { postComment, getComments } from '../services/commentService';
 import { toast } from 'react-toastify';
 
 
-const photosData = [
-  { id: 1, src: '/img/gallery/project-1.jpg', caption: 'Some image caption 1' },
-  { id: 2, src: '/img/gallery/project-2.jpg', caption: 'Some image caption 2' },
-  { id: 3, src: '/img/gallery/project-3.jpg', caption: 'Some image caption 3' },
-  { id: 4, src: '/img/gallery/project-4.jpg', caption: 'Some image caption 4' },
-  { id: 5, src: '/img/gallery/project-5.jpg', caption: 'Some image caption 5' },
-  { id: 6, src: '/img/gallery/project-6.jpg', caption: 'Some image caption 6' },
-];
-
 function DetailsPage() {
   const { movieId } = useParams();
   const navigate = useNavigate();
@@ -319,14 +310,6 @@ function DetailsPage() {
                       Reviews
                     </button>
                   </li>
-                  <li className="nav-item" role="presentation">
-                    <button
-                      className={activeTab === 'tab-3' ? 'active' : ''}
-                      onClick={() => handleTabChange('tab-3')}
-                    >
-                      Photos
-                    </button>
-                  </li>
                 </ul>
               </div>
             </div>
@@ -392,22 +375,6 @@ function DetailsPage() {
                   </div>
                 )}
 
-                {activeTab === 'tab-3' && (
-                  <div className="tab-pane fade show active">
-                    <div className="gallery" itemScope>
-                      <div className="row">
-                        {photosData.map(photo => (
-                          <figure key={photo.id} className="col-12 col-sm-6 col-xl-4" itemProp="associatedMedia" itemScope>
-                            <a href={photo.src} itemProp="contentUrl" data-size="1920x1280">
-                              <img src={photo.src} itemProp="thumbnail" alt={photo.caption} />
-                            </a>
-                            <figcaption itemProp="caption description">{photo.caption}</figcaption>
-                          </figure>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
