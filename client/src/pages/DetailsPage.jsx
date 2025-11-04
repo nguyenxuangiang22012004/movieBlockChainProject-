@@ -4,41 +4,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchMovieById, fetchMovies } from '../store/slices/movieSlice';
 import MovieCard from '../components/MovieCard';
 import VideoPlayer from '../components/VideoPlayer';
+import { postComment, getComments } from '../services/commentService';
+import { toast } from 'react-toastify';
 
-// Dữ liệu mẫu cho comments, reviews, photos
-const commentsData = [
-  {
-    id: 1,
-    avatar: '/img/user.svg',
-    name: 'John Doe',
-    time: '30.08.2018, 17:53',
-    text: 'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable.',
-    likes: 12,
-    dislikes: 7,
-    replies: [
-      {
-        id: 11,
-        avatar: '/img/user.svg',
-        name: 'John Doe',
-        time: '24.08.2018, 16:41',
-        text: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-        likes: 8,
-        dislikes: 3
-      }
-    ]
-  },
-  {
-    id: 2,
-    avatar: '/img/user.svg',
-    name: 'John Doe',
-    time: '11.08.2018, 11:11',
-    text: 'It has survived not only five centuries, but also the leap into electronic typesetting.',
-    likes: 11,
-    dislikes: 1,
-    isQuote: true,
-    quoteText: 'There are many variations of passages of Lorem Ipsum available.'
-  }
-];
 
 const photosData = [
   { id: 1, src: '/img/gallery/project-1.jpg', caption: 'Some image caption 1' },
@@ -56,6 +24,9 @@ function DetailsPage() {
   const dispatch = useDispatch();
   const { currentMovie, movies, loading, error } = useSelector((state) => state.movies);
   const [activeTab, setActiveTab] = useState('tab-1');
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+
 
   // ✅ Đọc từ URL (1-based) và chuyển thành index (0-based)
   const seasonFromUrl = parseInt(searchParams.get('season')) || 1; // Default 1
@@ -139,6 +110,41 @@ function DetailsPage() {
 
   const getRelatedMovies = () => {
     return movies.filter(m => m._id !== movieId).sort(() => 0.5 - Math.random()).slice(0, 6);
+  };
+
+  useEffect(() => {
+    if (!movieId) return;
+
+    const fetchComments = async () => {
+      try {
+        const data = await getComments(movieId);
+        console.log(data);
+        setComments(data.comments || []);
+      } catch (error) {
+        console.error('Lỗi khi tải bình luận:', error);
+      }
+    };
+
+    fetchComments();
+  }, [movieId]);
+  const handleSendComment = async () => {
+    if (!newComment.trim()) {
+      toast?.warn?.("Vui lòng nhập nội dung bình luận!");
+      return;
+    }
+
+    try {
+      const res = await postComment(movieId, currentMovie.category, newComment);
+      if (res.success) {
+        // Thêm comment mới lên đầu danh sách
+        setComments([res.comment, ...comments]);
+        setNewComment('');
+        toast?.success?.("Bình luận thành công!");
+      }
+    } catch (err) {
+      console.error("Lỗi khi gửi bình luận:", err);
+      toast?.error?.(err.response?.data?.message || "Không thể gửi bình luận");
+    }
   };
 
   if (loading && !currentMovie) return <div>Loading...</div>;
@@ -339,65 +345,48 @@ function DetailsPage() {
                       <div className="col-12">
                         <div className="comments">
                           <ul className="comments__list">
-                            {commentsData.map(comment => (
-                              <React.Fragment key={comment.id}>
-                                <li className={`comments__item ${comment.isQuote ? 'comments__item--quote' : ''}`}>
+                            {comments.length === 0 ? (
+                              <p>Chưa có bình luận nào. Hãy là người đầu tiên!</p>
+                            ) : (
+                              comments.map((comment) => (
+                                <li key={comment._id} className="comments__item">
                                   <div className="comments__autor">
-                                    <img className="comments__avatar" src={comment.avatar} alt="" />
-                                    <span className="comments__name">{comment.name}</span>
-                                    <span className="comments__time">{comment.time}</span>
+                                    <span className="comments__name">{comment.user_id?.username || 'Người dùng'}</span>
+                                    <span className="comments__time">
+                                      {new Date(comment.createdAt).toLocaleString('vi-VN')}
+                                    </span>
                                   </div>
-                                  <p className="comments__text">
-                                    {comment.isQuote ? (
-                                      <>
-                                        <span>{comment.quoteText}</span>
-                                        {comment.text}
-                                      </>
-                                    ) : (
-                                      comment.text
-                                    )}
-                                  </p>
+                                  <p className="comments__text">{comment.content}</p>
                                   <div className="comments__actions">
                                     <div className="comments__rate">
                                       <button type="button"><i className="ti ti-thumb-up"></i>{comment.likes}</button>
                                       <button type="button">{comment.dislikes}<i className="ti ti-thumb-down"></i></button>
                                     </div>
                                     <button type="button"><i className="ti ti-arrow-forward-up"></i>Reply</button>
-                                    <button type="button"><i className="ti ti-quote"></i>Quote</button>
                                   </div>
                                 </li>
-
-                                {comment.replies && comment.replies.length > 0 && (
-                                  <ul className="comments__replies">
-                                    {comment.replies.map(reply => (
-                                      <li key={reply.id} className="comments__item comments__item--answer">
-                                        <div className="comments__autor">
-                                          <img className="comments__avatar" src={reply.avatar} alt="" />
-                                          <span className="comments__name">{reply.name}</span>
-                                          <span className="comments__time">{reply.time}</span>
-                                        </div>
-                                        <p className="comments__text">{reply.text}</p>
-                                        <div className="comments__actions">
-                                          <div className="comments__rate">
-                                            <button type="button"><i className="ti ti-thumb-up"></i>{reply.likes}</button>
-                                            <button type="button">{reply.dislikes}<i className="ti ti-thumb-down"></i></button>
-                                          </div>
-                                          <button type="button"><i className="ti ti-arrow-forward-up"></i>Reply</button>
-                                          <button type="button"><i className="ti ti-quote"></i>Quote</button>
-                                        </div>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </React.Fragment>
-                            ))}
+                              ))
+                            )}
                           </ul>
 
-                          <form action="#" className="sign__form sign__form--comments">
+                          <form onSubmit={(e) => e.preventDefault()} className="sign__form sign__form--comments">
                             <div className="sign__group">
-                              <textarea id="textreview" name="textreview" className="sign__textarea" placeholder="Add review"></textarea>
+                              <textarea
+                                id="textreview"
+                                name="textreview"
+                                className="sign__textarea"
+                                placeholder="Nhập bình luận của bạn..."
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                              ></textarea>
                             </div>
-                            <button type="button" className="sign__btn sign__btn--small">Send</button>
+                            <button
+                              type="button"
+                              className="sign__btn sign__btn--small"
+                              onClick={handleSendComment}
+                            >
+                              Send
+                            </button>
                           </form>
                         </div>
                       </div>
