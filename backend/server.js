@@ -13,7 +13,7 @@ import tvSeriesRoutes from "./routes/tvseries.routes.js";
 import catalogRoutes from "./routes/catalog.routes.js";
 import userRoutes from "./routes/users.routes.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
-
+import commentRoutes from "./routes/comment.routes.js";
 const app = express();
 app.use(
   cors({
@@ -39,6 +39,7 @@ app.use("/api", authRoutes);
 app.use("/api", uploadRoutes);
 app.use('/api', tvSeriesRoutes);
 app.use("/api", authMiddleware,catalogRoutes);
+app.use("/api/comments", commentRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 
 
