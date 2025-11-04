@@ -1,12 +1,18 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 
-
 export const authMiddleware = async (req, res, next) => {
   try {
-    // Lấy token từ header
-    const authHeader = req.headers.authorization;
+    // 🧩 1. Bỏ qua xác thực nếu là route Google OAuth
+    if (
+      req.path.startsWith("/auth/google") || 
+      req.originalUrl.startsWith("/api/auth/google")
+    ) {
+      return next();
+    }
 
+    // 🧩 2. Lấy token từ header
+    const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
@@ -15,12 +21,12 @@ export const authMiddleware = async (req, res, next) => {
     }
 
     const token = authHeader.substring(7);
-    // Verify token
 
+    // 🧩 3. Giải mã token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Tìm user
-    const user = await User.findById(decoded.userId).select("-password");
 
+    // 🧩 4. Lấy user theo id
+    const user = await User.findById(decoded.id || decoded.userId).select("-password");
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -39,29 +45,18 @@ export const authMiddleware = async (req, res, next) => {
     next();
   } catch (error) {
     if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({
-        success: false,
-        message: "Token không hợp lệ",
-      });
+      return res.status(401).json({ success: false, message: "Token không hợp lệ" });
     }
     if (error.name === "TokenExpiredError") {
-      return res.status(401).json({
-        success: false,
-        message: "Token đã hết hạn",
-      });
+      return res.status(401).json({ success: false, message: "Token đã hết hạn" });
     }
-    return res.status(500).json({
-      success: false,
-      message: "Lỗi xác thực",
-    });
+    return res.status(500).json({ success: false, message: "Lỗi xác thực" });
   }
 };
 
-// Middleware kiểm tra role
+// 🧩 Middleware kiểm tra role
 export const requireRole = (...roles) => {
   return (req, res, next) => {
-    console.log("🟢 Vào requireRole với roles:", roles);
-    console.log("🔍 req.user:", req.user);
     if (!req.user) {
       return res.status(401).json({
         success: false,

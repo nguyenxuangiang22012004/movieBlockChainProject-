@@ -17,12 +17,15 @@
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "express-session": "^1.18.2",
     "ipfs-http-client": "^60.0.1",
     "jsonwebtoken": "^9.0.2",
     "kubo-rpc-client": "^5.2.0",
     "mongoose": "^8.19.1",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.9"
+    "nodemailer": "^7.0.9",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.3",

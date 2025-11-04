@@ -43,7 +43,7 @@ function LoginPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    
+
     // Xóa lỗi khi user bắt đầu nhập
     if (error) setError('');
     if (successMessage) setSuccessMessage('');
@@ -79,7 +79,7 @@ function LoginPage() {
   // Xử lý submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate
     if (!validateForm()) {
       return;
@@ -95,7 +95,7 @@ function LoginPage() {
       if (response.success) {
         // Đăng nhập thành công
         setSuccessMessage('Đăng nhập thành công! Đang chuyển hướng...');
-        
+
         // Chuyển về trang chủ sau 1 giây
         setTimeout(() => {
           navigate('/', { replace: true });
@@ -108,6 +108,31 @@ function LoginPage() {
       setLoading(false);
     }
   };
+
+  const handleGoogleLogin = (e) => {
+    e.preventDefault();
+
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+    const frontendUrl = import.meta.env.VITE_FRONTEND_URL || "http://localhost:5173";
+
+    const popup = window.open(
+      `${backendUrl}/api/auth/google`,
+      "googleLogin",
+      "width=500,height=600"
+    );
+
+    // ✅ Lắng nghe message từ popup
+    window.addEventListener("message", (event) => {
+      if (event.origin !== backendUrl) return;
+      const { type, token, user } = event.data;
+      if (type === "google-auth-success") {
+        localStorage.setItem("auth_token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        navigate("/", { replace: true });
+      }
+    });
+  };
+
 
   return (
     <div className="sign section--bg" data-bg="/img/bg/section__bg.jpg" ref={signBgRef}>
@@ -153,9 +178,9 @@ function LoginPage() {
                 )}
 
                 <div className="sign__group">
-                  <input 
-                    type="email" 
-                    className="sign__input" 
+                  <input
+                    type="email"
+                    className="sign__input"
                     placeholder="Email"
                     name="email"
                     value={formData.email}
@@ -166,9 +191,9 @@ function LoginPage() {
                 </div>
 
                 <div className="sign__group">
-                  <input 
-                    type="password" 
-                    className="sign__input" 
+                  <input
+                    type="password"
+                    className="sign__input"
                     placeholder="Mật khẩu"
                     name="password"
                     value={formData.password}
@@ -179,9 +204,9 @@ function LoginPage() {
                 </div>
 
                 <div className="sign__group sign__group--checkbox">
-                  <input 
-                    id="remember" 
-                    name="remember" 
+                  <input
+                    id="remember"
+                    name="remember"
                     type="checkbox"
                     checked={formData.remember}
                     onChange={handleChange}
@@ -190,8 +215,8 @@ function LoginPage() {
                   <label htmlFor="remember">Ghi nhớ đăng nhập</label>
                 </div>
 
-                <button 
-                  className="sign__btn" 
+                <button
+                  className="sign__btn"
                   type="submit"
                   disabled={loading}
                   style={{
@@ -213,34 +238,7 @@ function LoginPage() {
                 <span className="sign__delimiter">hoặc</span>
 
                 <div className="sign__social">
-                  <a 
-                    className="fb" 
-                    href="#" 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setError('Tính năng đang phát triển');
-                    }}
-                  >
-                    Đăng nhập với <i className="ti ti-brand-facebook"></i>
-                  </a>
-                  <a 
-                    className="tw" 
-                    href="#" 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setError('Tính năng đang phát triển');
-                    }}
-                  >
-                    Đăng nhập với <i className="ti ti-brand-x"></i>
-                  </a>
-                  <a 
-                    className="gl" 
-                    href="#" 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setError('Tính năng đang phát triển');
-                    }}
-                  >
+                  <a className="gl" href="#" onClick={handleGoogleLogin}>
                     Đăng nhập với <i className="ti ti-brand-google"></i>
                   </a>
                 </div>
