@@ -118,7 +118,6 @@ function DetailsPage() {
     const fetchComments = async () => {
       try {
         const data = await getComments(movieId);
-        console.log(data);
         setComments(data.comments || []);
       } catch (error) {
         console.error('Lỗi khi tải bình luận:', error);
@@ -136,7 +135,6 @@ function DetailsPage() {
     try {
       const res = await postComment(movieId, currentMovie.category, newComment);
       if (res.success) {
-        // Thêm comment mới lên đầu danh sách
         setComments([res.comment, ...comments]);
         setNewComment('');
         toast?.success?.("Bình luận thành công!");

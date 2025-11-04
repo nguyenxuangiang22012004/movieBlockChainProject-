@@ -8,7 +8,7 @@ export const postComment = async (itemId, itemType, content, parentCommentId = n
       content,
       parent_comment_id: parentCommentId,
     });
-    return res.data;
+    return res;
   } catch (error) {
     console.error("❌ postComment error:", error.response?.data || error.message);
     throw error;
