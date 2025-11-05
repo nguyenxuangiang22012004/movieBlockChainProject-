@@ -3,7 +3,6 @@ import User from "../models/user.model.js";
 
 export const authMiddleware = async (req, res, next) => {
   try {
-    // 🧩 1. Bỏ qua xác thực nếu là route Google OAuth
     if (
       req.path.startsWith("/auth/google") || 
       req.originalUrl.startsWith("/api/auth/google")
@@ -11,7 +10,7 @@ export const authMiddleware = async (req, res, next) => {
       return next();
     }
 
-    // 🧩 2. Lấy token từ header
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
@@ -22,7 +21,6 @@ export const authMiddleware = async (req, res, next) => {
 
     const token = authHeader.substring(7);
 
-    // 🧩 3. Giải mã token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // 🧩 4. Lấy user theo id
