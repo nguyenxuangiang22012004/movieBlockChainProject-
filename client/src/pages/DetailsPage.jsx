@@ -257,28 +257,6 @@ function DetailsPage() {
                     <option value="2">LostFilm</option>
                     <option value="3">HotFlix</option>
                   </select>
-
-                  <select
-                    className="section__item-select"
-                    onChange={handleQualityChange}
-                    name="quality"
-                    id="filter__quality"
-                    value={selectedQuality}
-                  >
-                    {(() => {
-                      let videoSource = null;
-                      if (currentMovie.seasons?.[selectedSeasonIndex]?.episodes?.[selectedEpisodeIndex]) {
-                        videoSource = currentMovie.seasons[selectedSeasonIndex].episodes[selectedEpisodeIndex].video_source;
-                      }
-                      return videoSource?.sources ? (
-                        Object.keys(videoSource.sources).map((quality) => (
-                          <option key={`quality-${quality}`} value={quality}>
-                            {quality}
-                          </option>
-                        ))
-                      ) : null;
-                    })()}
-                  </select>
                 </div>
               )}
             </div>
