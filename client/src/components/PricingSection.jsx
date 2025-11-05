@@ -15,7 +15,7 @@ function PricingSection() {
 
       // ✅ Chọn tài khoản đầu tiên làm signer
       const signer = await provider.getSigner(accounts[0].address);
-      console.log("hello",CONTRACT_ADDRESS);
+      
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
       const tx = await contract.buyPlan(planIndex, 1, {
@@ -27,7 +27,7 @@ function PricingSection() {
       const walletAddress = accounts[0].address;
       const res = await updateSubscription(walletAddress);
 
-      alert(`✅ Mua gói thành công và đã cập nhật vào database!`);
+      alert(`✅ Mua gói thành công !`);
     } catch (error) {
       console.error("❌ Lỗi mua gói:", error);
       alert("Giao dịch thất bại. Kiểm tra console để xem chi tiết.");

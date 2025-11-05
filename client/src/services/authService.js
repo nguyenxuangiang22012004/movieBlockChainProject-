@@ -87,7 +87,7 @@ export const verifyEmailService = async (token) => {
     const res = await api.get(`/auth/verify-email?token=${token}`);
 
     if (res.data.success) {
-      window.location.href = `${import.meta.env.VITE_CLIENT_URL}/login?verified=true`;
+      window.location.href = `${import.meta.env.VITE_FRONTEND_URL}/login?verified=true`;
     } else {
       console.error(res.data.message);
     }

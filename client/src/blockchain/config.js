@@ -1,4 +1,5 @@
 export const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
+
 export const RPC_URL = "http://127.0.0.1:8545";
 export const CONTRACT_ABI = [
   {

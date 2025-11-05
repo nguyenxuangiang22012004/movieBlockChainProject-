@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import User from "../../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -139,9 +141,7 @@ export const registerService = async (userData) => {
       { expiresIn: "1d" }
     );
 
-    // 6️⃣ Tạo URL xác minh
-    const verifyUrl = `${process.env.CLIENT_URL}/verify-email?token=${verifyToken}`;
-
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`;
     // 7️⃣ Soạn email gửi đi
     const mailOptions = {
       from: `"Movie App" <${process.env.EMAIL_USER}>`,
@@ -285,7 +285,7 @@ export const forgotPasswordService = async (email) => {
     );
 
     // 5️⃣ Tạo URL reset password
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
 
     // 6️⃣ Soạn email
     const mailOptions = {

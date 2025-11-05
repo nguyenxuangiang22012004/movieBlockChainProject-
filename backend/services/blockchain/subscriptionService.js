@@ -1,4 +1,6 @@
 // services/blockchain/subscriptionService.js
+import dotenv from "dotenv";
+dotenv.config(); 
 import { ethers } from "ethers";
 import fs from "fs";
 import path from "path";
@@ -11,6 +13,7 @@ const abiPath = path.resolve(__dirname, "../../../hardhat/artifacts/contracts/Su
 const SubscriptionABI = JSON.parse(fs.readFileSync(abiPath, "utf-8")).abi;
 
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
+
 const provider = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545");
 
 export const getUserSubscription = async (walletAddress) => {
