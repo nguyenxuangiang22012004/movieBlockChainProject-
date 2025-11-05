@@ -20,6 +20,7 @@ function EditUserPage() {
     full_name: "",
     role: "user",
     subscriptionPlan: "Basic",
+    walletAddress: "",
   });
   useEffect(() => {
     const fetchUser = async () => {
@@ -32,6 +33,7 @@ function EditUserPage() {
           full_name: res.data.full_name || "",
           role: res.data.role || "user",
           subscriptionPlan: res.data.subscriptionCache?.planName || "Basic",
+          walletAddress: res.data.walletAddress || "",
         });
       } catch (err) {
         console.error("Error fetching user:", err);
@@ -56,6 +58,7 @@ function EditUserPage() {
         full_name: form.full_name,
         role: form.role,
         subscriptionCache: { planName: form.subscriptionPlan },
+        walletAddress: form.walletAddress,
       };
 
       const res = await updateUserService(userId, updateData);
@@ -302,6 +305,21 @@ function EditUserPage() {
                               <option value="moderator">Moderator</option>
                               <option value="admin">Admin</option>
                             </select>
+                          </div>
+                        </div>
+
+                        <div className="col-12 col-md-6">
+                          <div className="sign__group">
+                            <label className="sign__label" htmlFor="walletAddress">Wallet Address</label>
+                            <input
+                              id="walletAddress"
+                              name="walletAddress"
+                              type="text"
+                              className="sign__input"
+                              placeholder="0x..."
+                              value={form.walletAddress}
+                              onChange={handleChange}
+                            />
                           </div>
                         </div>
 

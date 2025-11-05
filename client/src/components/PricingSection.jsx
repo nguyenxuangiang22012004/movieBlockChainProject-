@@ -15,7 +15,7 @@ function PricingSection() {
 
       // ✅ Chọn tài khoản đầu tiên làm signer
       const signer = await provider.getSigner(accounts[0].address);
-
+      console.log("hello",CONTRACT_ADDRESS);
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
       const tx = await contract.buyPlan(planIndex, 1, {
