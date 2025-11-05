@@ -1,52 +1,36 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-
+import { getAllComments } from "../services/commentService";
 function CommentsPage() {
-    // State để lưu trữ dữ liệu (bạn sẽ fetch từ API)
-    const [comments, setComments] = useState([
-        { id: 11, item: 'I Dream in Another Language', author: 'Charlize Theron', text: 'When a renowned archaeologist goes...', likes: 12, dislikes: 7, created: '05.02.2023' },
-        { id: 12, item: 'The Forgotten Road', author: 'Tyreese Gibson', text: 'A down-on-his-luck boxer struggles...', likes: 67, dislikes: 22, created: '05.02.2023' },
-        { id: 13, item: 'Whitney', author: 'Jordana Brewster', text: 'When an old friend offers him...', likes: 44, dislikes: 5, created: '04.02.2023' },
-        // ... Thêm các comment khác
-    ]);
+    const [comments, setComments] = useState([]);
+    const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
-    const sortSelectRef = useRef(null);
-
-    // Logic tìm kiếm
+    const [selectedComment, setSelectedComment] = useState(null);
     const filteredComments = comments.filter(comment =>
-        comment.item.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        comment.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        comment.text.toLowerCase().includes(searchTerm.toLowerCase())
+        comment.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        comment.user_id?.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        comment.item_type?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     useEffect(() => {
-        setCurrentPage(1);
-    }, [searchTerm]);
-
-    // Khởi tạo và hủy SlimSelect
-    useEffect(() => {
-        if (window.SlimSelect && !sortSelectRef.current) {
-            sortSelectRef.current = new window.SlimSelect({
-                select: '#filter__sort',
-                settings: { showSearch: false }
-            });
-        }
-        return () => {
-            if (sortSelectRef.current) {
-                sortSelectRef.current.destroy();
-                sortSelectRef.current = null;
+        const fetchData = async () => {
+            try {
+                const data = await getAllComments(currentPage, itemsPerPage, searchTerm);
+                if (data.success) {
+                    setComments(data.comments);
+                    setTotalPages(data.totalPages);
+                    setTotal(data.total);
+                }
+            } catch (error) {
+                console.error("❌ Lỗi khi lấy danh sách comment:", error);
             }
         };
-    }, []);
 
-    // Logic phân trang
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentComments = filteredComments.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(filteredComments.length / itemsPerPage);
-    const paginate = (pageNumber) => setCurrentPage(pageNumber);
+        fetchData();
+    }, [currentPage, searchTerm]);
 
     return (
         <>
@@ -56,7 +40,7 @@ function CommentsPage() {
                     <div className="col-12">
                         <div className="main__title">
                             <h2>Comments</h2>
-                            <span className="main__title-stat">{filteredComments.length} Total</span>
+                            <span className="main__title-stat">{total} Total</span>
                             <div className="main__title-wrap">
                                 <select className="filter__select" name="sort" id="filter__sort">
                                     <option value="0">Date created</option>
@@ -92,18 +76,33 @@ function CommentsPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {currentComments.map(comment => (
-                                        <tr key={comment.id}>
-                                            <td><div className="catalog__text">{comment.id}</div></td>
-                                            <td><div className="catalog__text"><a href="#">{comment.item}</a></div></td>
-                                            <td><div className="catalog__text">{comment.author}</div></td>
-                                            <td><div className="catalog__text">{comment.text}</div></td>
+                                    {comments.map((comment, index) => (
+                                        <tr key={comment._id}>
+                                            <td><div className="catalog__text">{index + 1}</div></td>
+                                            <td><div className="catalog__text">{comment.item_type}</div></td>
+                                            <td><div className="catalog__text">{comment.user_id?.username || "Unknown"}</div></td>
+                                            <td><div className="catalog__text">
+                                                {comment.content.length > 50
+                                                    ? comment.content.slice(0, 50) + "..."
+                                                    : comment.content}
+                                            </div></td>
+
                                             <td><div className="catalog__text">{comment.likes} / {comment.dislikes}</div></td>
-                                            <td><div className="catalog__text">{comment.created}</div></td>
+                                            <td><div className="catalog__text">{new Date(comment.createdAt).toLocaleDateString()}</div></td>
                                             <td>
                                                 <div className="catalog__btns">
-                                                    <button type="button" data-bs-toggle="modal" className="catalog__btn catalog__btn--view" data-bs-target="#modal-view"><i className="ti ti-eye"></i></button>
-                                                    <button type="button" data-bs-toggle="modal" className="catalog__btn catalog__btn--delete" data-bs-target="#modal-delete"><i className="ti ti-trash"></i></button>
+                                                    <button
+                                                        type="button"
+                                                        className="catalog__btn catalog__btn--view"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modal-view"
+                                                        onClick={() => setSelectedComment(comment)}
+                                                    >
+                                                        <i className="ti ti-eye"></i>
+                                                    </button>
+                                                    <button type="button" className="catalog__btn catalog__btn--delete" data-bs-toggle="modal" data-bs-target="#modal-delete">
+                                                        <i className="ti ti-trash"></i>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -114,9 +113,16 @@ function CommentsPage() {
                     </div>
                     {/* end comments */}
 
-                    {/* paginator */}
                     <div className="col-12">
-                        {/* ... Component phân trang ... */}
+                        <ul className="paginator">
+                            {[...Array(totalPages)].map((_, index) => (
+                                <li key={index} className={`paginator__item ${currentPage === index + 1 ? 'active' : ''}`}>
+                                    <button onClick={() => setCurrentPage(index + 1)}>
+                                        {index + 1}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                     {/* end paginator */}
                 </div>
@@ -124,13 +130,49 @@ function CommentsPage() {
 
             {/* view modal */}
             <div className="modal fade" id="modal-view" tabIndex="-1" aria-labelledby="modal-view" aria-hidden="true">
-                 {/* ... Nội dung modal xem comment ... */}
+                <div className="modal-dialog modal-dialog-centered">
+                    <div className="modal-content">
+                        {selectedComment ? (
+                            <div className="modal__content modal__content--view">
+                                <div className="comments__autor">
+                                    {/* Avatar nếu có, fallback hình mặc định */}
+                                    <img
+                                        className="comments__avatar"
+                                        src={selectedComment.user_id?.avatar || "img/user.svg"}
+                                        alt={selectedComment.user_id?.username || "User"}
+                                    />
+                                    <span className="comments__name">
+                                        {selectedComment.user_id?.username || "Unknown"}
+                                    </span>
+                                    <span className="comments__time">
+                                        {new Date(selectedComment.createdAt).toLocaleString()}
+                                    </span>
+                                </div>
+
+                                {/* Nội dung đầy đủ comment */}
+                                <p className="comments__text">{selectedComment.content}</p>
+
+                                <div className="comments__actions">
+                                    <div className="comments__rate">
+                                        <span><i className="ti ti-thumb-up"></i>{selectedComment.likes}</span>
+                                        <span>{selectedComment.dislikes}<i className="ti ti-thumb-down"></i></span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="modal__content modal__content--view text-center py-4">
+                                <p>Loading...</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
-            
+
             {/* delete modal */}
             <div className="modal fade" id="modal-delete" tabIndex="-1" aria-labelledby="modal-delete" aria-hidden="true">
-                 {/* ... Nội dung modal xóa comment ... */}
+                {/* ... Nội dung modal xóa comment ... */}
             </div>
+
         </>
     );
 }

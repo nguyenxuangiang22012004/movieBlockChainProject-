@@ -69,3 +69,46 @@ export const getCommentsByItem = async (req, res) => {
     });
   }
 };
+
+export const getAllComments = async (req, res) => {
+  try {
+    // 🧭 Lấy query params
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || "";
+
+    // 🧩 Tạo điều kiện lọc
+    const searchFilter = search
+      ? {
+          $or: [
+            { content: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {};
+
+    // 🔍 Tổng số comment
+    const total = await Comment.countDocuments(searchFilter);
+
+    // ⚙️ Lấy dữ liệu theo phân trang
+    const comments = await Comment.find(searchFilter)
+      .populate("user_id", "username avatar")
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.status(200).json({
+      success: true,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      comments,
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy danh sách comment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi server, không thể lấy danh sách bình luận.",
+    });
+  }
+};
