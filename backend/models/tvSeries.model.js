@@ -10,7 +10,7 @@ const videoSourceSchema = new Schema({
     '1080p': String,
     '720p': String,
     '480p': String,
-    'hls': String, 
+    'hls': String,
   },
   subtitles: [
     {
@@ -47,6 +47,10 @@ const tvSeriesSchema = new Schema({
   seasons: [seasonSchema],
   category: { type: String, default: "TVSeries" },
   age_rating: String,
+  imdb_rating: {
+    type: Number,
+    default: 7,
+  },
   status: {
     type: String,
     enum: ["Visible", "Hidden"],

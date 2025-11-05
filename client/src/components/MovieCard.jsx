@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 function MovieCard({ movie }) {
-  const rateColor = movie.rate > 8 ? 'green' : movie.rate > 6 ? 'yellow' : 'red';
+  const rateColor = movie.rating > 8 ? 'green' : movie.rating > 6 ? 'yellow' : 'red';
 
   return (
     <div className="col-6 col-sm-4 col-lg-3 col-xl-2">
