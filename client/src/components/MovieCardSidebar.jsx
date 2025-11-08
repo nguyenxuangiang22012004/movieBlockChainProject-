@@ -1,0 +1,29 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+function MovieCardSidebar({ movie }) {
+  const rateColor = movie.rating > 8 ? 'green' : movie.rating > 6 ? 'yellow' : 'red';
+
+  return (
+    <div className="item">
+      <div className="item__cover">
+        <img src={movie.cover_image_url} alt="" />
+        <Link to={`/details/${movie.id}`} className="item__play">
+          <i className="ti ti-player-play-filled"></i>
+        </Link>
+        <span className={`item__rate item__rate--${rateColor}`}>{movie.rating}</span>
+        <button className="item__favorite" type="button"><i className="ti ti-bookmark"></i></button>
+      </div>
+      <div className="item__content">
+        <h3 className="item__title"><Link to={`/details/${movie.id}`}>{movie.title}</Link></h3>
+        <span className="item__category">
+          {movie.categories?.map((category, index) => (
+            <Link key={index} to="#">{category}</Link>
+          ))}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export default MovieCardSidebar;

@@ -6,7 +6,7 @@ import MovieCard from '../components/MovieCard';
 import VideoPlayer from '../components/VideoPlayer';
 import { postComment, getComments } from '../services/commentService';
 import { toast } from 'react-toastify';
-
+import MovieCardSidebar from '../components/MovieCardSidebar';
 
 function DetailsPage() {
   const { movieId } = useParams();
@@ -364,10 +364,10 @@ function DetailsPage() {
 
                 {getRelatedMovies().map(movie => (
                   <div key={movie._id} className="col-6 col-sm-4 col-lg-6">
-                    <MovieCard movie={{
+                    <MovieCardSidebar movie={{
                       id: movie._id,
-                      cover: movie.cover_image_url,
-                      rate: movie.imdb_rating || movie.rating || 0,
+                      cover_image_url: movie.cover_image_url,
+                      rating: movie.imdb_rating || movie.rating || 0,
                       title: movie.title,
                       categories: movie.genres || [],
                     }} />
