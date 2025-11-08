@@ -365,7 +365,7 @@ function DetailsPage() {
                 {getRelatedMovies().map(movie => (
                   <div key={movie._id} className="col-6 col-sm-4 col-lg-6">
                     <MovieCardSidebar movie={{
-                      id: movie._id,
+                      id: movie._id || movie.id,
                       cover_image_url: movie.cover_image_url,
                       rating: movie.imdb_rating || movie.rating || 0,
                       title: movie.title,

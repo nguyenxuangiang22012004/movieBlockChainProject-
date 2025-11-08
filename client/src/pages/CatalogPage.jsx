@@ -4,7 +4,7 @@ import FilterBar from "../components/FilterBar";
 import MovieCard from "../components/MovieCard";
 import Pagination from "../components/Pagination";
 import PremiereSection from "../components/PremiereSection";
-import { getCatalog } from "../services/catalogService.js"; 
+import { getCatalog } from "../services/catalogService.js";
 
 function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -66,8 +66,8 @@ function CatalogPage() {
                   {typeParam === "movie"
                     ? "Movies"
                     : typeParam === "tvseries"
-                    ? "TV Series"
-                    : "Catalog"}
+                      ? "TV Series"
+                      : "Catalog"}
                 </h1>
                 <ul className="breadcrumbs">
                   <li className="breadcrumbs__item">
@@ -77,8 +77,8 @@ function CatalogPage() {
                     {typeParam === "movie"
                       ? "Movies"
                       : typeParam === "tvseries"
-                      ? "TV Series"
-                      : "Catalog"}
+                        ? "TV Series"
+                        : "Catalog"}
                   </li>
                 </ul>
               </div>
@@ -93,11 +93,23 @@ function CatalogPage() {
         <div className="container">
           <div className="row">
             {movies.length > 0 ? (
-              movies.map((movie) => <MovieCard key={movie.id} movie={movie} />)
+              movies.map((movie) => (
+                <MovieCard
+                  key={movie.id || movie._id}
+                  movie={{
+                    id: movie.id || movie._id,
+                    cover_image_url: movie.cover_image_url,
+                    rating: movie.imdb_rating || movie.rating || 0,
+                    title: movie.title,
+                    categories: movie.genres || [],
+                  }}
+                />
+              ))
             ) : (
               <div className="col-12 text-center">Không có dữ liệu</div>
             )}
           </div>
+
 
           {totalPages > 1 && (
             <div className="row">
