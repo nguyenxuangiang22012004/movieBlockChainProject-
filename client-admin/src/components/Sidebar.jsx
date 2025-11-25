@@ -14,7 +14,7 @@ function Sidebar({ onLogout }) {
         </div>
         <div className="sidebar__user-title">
           <span>Admin</span>
-          <p>John Doe</p>
+
         </div>
         <button className="sidebar__user-btn" type="button" onClick={onLogout}>
           <i className="ti ti-logout"></i>
@@ -53,6 +53,16 @@ function Sidebar({ onLogout }) {
               }
             >
               <i className="ti ti-users"></i> <span>Users</span>
+            </NavLink>
+          </li>
+          <li className="sidebar__nav-item">
+            <NavLink
+              to="/admin/transaction"
+              className={({ isActive }) =>
+                `sidebar__nav-link ${isActive ? "sidebar__nav-link--active" : ""}`
+              }
+            >
+              <i className="ti ti-users"></i> <span>Transaction</span>
             </NavLink>
           </li>
           <li className="sidebar__nav-item">

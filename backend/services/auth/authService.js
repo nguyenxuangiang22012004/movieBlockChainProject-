@@ -7,7 +7,6 @@ import transporter from "../../email/mailer.js";
 
 export const loginService = async (email, password) => {
   try {
-    // Kiểm tra input
     if (!email || !password) {
       return {
         success: false,
@@ -16,7 +15,6 @@ export const loginService = async (email, password) => {
       };
     }
 
-    // Tìm user theo email
     const user = await User.findOne({ email });
     if (!user) {
       return {

@@ -13,6 +13,7 @@ import catalogRoutes from "./routes/catalog.routes.js";
 import userRoutes from "./routes/users.routes.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 import commentRoutes from "./routes/comment.routes.js";
+import Transaction from "./routes/transactionRoutes.js";
 const app = express();
 app.use(
   cors({
@@ -40,6 +41,7 @@ app.use('/api', tvSeriesRoutes);
 app.use("/api", authMiddleware,catalogRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/subscription", subscriptionRoutes);
+app.use("/api/transactions", Transaction);
 
 
 app.listen(5000, () => console.log("🚀 Server chạy ở http://localhost:5000"));

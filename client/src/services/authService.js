@@ -26,7 +26,6 @@ export const login = async (email, password) => {
       throw new Error("Bạn không có quyền truy cập vào trang này");
     }
 
-    // Lưu token và thông tin user vào localStorage
     localStorage.setItem("auth_token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
 
@@ -39,11 +38,9 @@ export const login = async (email, password) => {
       },
     };
   } catch (err) {
-    // Xóa thông tin cũ nếu đăng nhập thất bại
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user");
 
-    // Xử lý error message
     const errorMessage = 
       err.response?.data?.message || 
       err.message || 
@@ -53,7 +50,6 @@ export const login = async (email, password) => {
   }
 };
 
-// Đăng ký
 export const register = async (userData) => {
   try {
     const { data } = await api.post("/auth/register", userData);
@@ -64,10 +60,9 @@ export const register = async (userData) => {
 };
 
 
-// Đăng xuất
 export const logout = async () => {
   try {
-    // Gọi API logout để xử lý ở backend (nếu cần)
+
     const token = localStorage.getItem("auth_token");
     if (token) {
       await api.post("/auth/logout");
@@ -75,7 +70,6 @@ export const logout = async () => {
   } catch (err) {
     console.error("Logout error:", err);
   } finally {
-    // Luôn xóa token và user info khỏi localStorage
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user");
   }
@@ -125,7 +119,6 @@ export const forgotPassword = async (email) => {
   }
 };
 
-// Reset mật khẩu - Đặt mật khẩu mới
 export const resetPassword = async (token, newPassword) => {
   try {
     const response = await api.post("/auth/reset-password", { 

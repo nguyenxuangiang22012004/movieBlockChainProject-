@@ -11,6 +11,7 @@ import SettingsPage from "../pages/SettingPage";
 import CommentsPage from "../pages/CommentsPage";
 import SettingAdmin from "../pages/SettingAdmin";
 import EditItemPage from "../pages/EditItemPage";
+import AdminTransactions from "../pages/AdminTransactions";
 function App() {
   return (
     <BrowserRouter>
@@ -21,6 +22,7 @@ function App() {
           <Route path="users" element={<UsersPage />} />   
           <Route path="edit-user/:userId" element={<EditUserPage />} />
           <Route path="add-item" element={<AddItemPage />} />
+          <Route path="transaction" element={<AdminTransactions />} />
           <Route path="catalog" element={<CatalogPage />} />
           <Route path="reviews" element={<ReviewsPage />} />
           <Route path="settings" element={<SettingsPage />} />

@@ -93,16 +93,15 @@ function LoginPage() {
       const response = await login(formData.email, formData.password);
 
       if (response.success) {
-        // Đăng nhập thành công
         setSuccessMessage('Đăng nhập thành công! Đang chuyển hướng...');
 
-        // Chuyển về trang chủ sau 1 giây
+      
         setTimeout(() => {
           navigate('/', { replace: true });
         }, 1000);
       }
     } catch (err) {
-      // Hiển thị lỗi
+    
       setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
@@ -121,7 +120,6 @@ function LoginPage() {
       "width=500,height=600"
     );
 
-    // ✅ Lắng nghe message từ popup
     window.addEventListener("message", (event) => {
       if (event.origin !== backendUrl) return;
       const { type, token, user } = event.data;
@@ -145,7 +143,7 @@ function LoginPage() {
                   <img src="/img/logo.svg" alt="Logo" />
                 </Link>
 
-                {/* Hiển thị thông báo thành công */}
+    
                 {successMessage && (
                   <div className="sign__message sign__message--success" style={{
                     color: '#00d451',
@@ -161,7 +159,6 @@ function LoginPage() {
                   </div>
                 )}
 
-                {/* Hiển thị lỗi */}
                 {error && (
                   <div className="sign__message sign__message--error" style={{
                     color: '#ff5151',
